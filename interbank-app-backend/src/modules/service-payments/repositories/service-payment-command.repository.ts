@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, TransactionDirection, TransactionStatus, TransactionType } from '@prisma/client';
+import {
+  AccountStatus,
+  Prisma,
+  TransactionDirection,
+  TransactionStatus,
+  TransactionType,
+} from '@prisma/client';
 
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ServicePaymentFailureReason } from '@/modules/service-payments/enums/service-payment-failure-reason.enum';
@@ -51,7 +57,12 @@ export class ServicePaymentCommandRepository {
     const [account, agreement] = await Promise.all([
       transaction.account.findFirst({
         where: { id: input.accountId, userId },
-        select: { id: true, currency: true },
+        select: {
+          id: true,
+          currency: true,
+          status: true,
+          accountType: { select: { allowsDebits: true } },
+        },
       }),
       transaction.serviceAgreement.findFirst({
         where: { code: input.serviceCode, isActive: true, provider: { status: 'ACTIVE' } },
@@ -59,6 +70,9 @@ export class ServicePaymentCommandRepository {
       }),
     ]);
     if (!account) this.fail(ServicePaymentFailureReason.ACCOUNT_NOT_FOUND);
+    if (account.status !== AccountStatus.ACTIVE || !account.accountType.allowsDebits) {
+      this.fail(ServicePaymentFailureReason.ACCOUNT_UNAVAILABLE);
+    }
     if (!agreement) this.fail(ServicePaymentFailureReason.SERVICE_NOT_FOUND);
     if (account.currency !== agreement.currency) {
       this.fail(ServicePaymentFailureReason.CURRENCY_MISMATCH);
@@ -142,7 +156,13 @@ export class ServicePaymentCommandRepository {
     amount: Prisma.Decimal,
   ): Promise<void> {
     const result = await transaction.account.updateMany({
-      where: { id: accountId, userId, balance: { gte: amount } },
+      where: {
+        id: accountId,
+        userId,
+        status: AccountStatus.ACTIVE,
+        accountType: { allowsDebits: true },
+        balance: { gte: amount },
+      },
       data: { balance: { decrement: amount } },
     });
     if (result.count !== 1) this.fail(ServicePaymentFailureReason.INSUFFICIENT_FUNDS);

@@ -11,9 +11,10 @@
     "lint:fix": "pnpm lint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "verify": "pnpm format:check && pnpm lint && pnpm test --runInBand && pnpm build",
+    "verify": "pnpm format:check && pnpm lint && pnpm test --runInBand && pnpm test:e2e --runInBand && pnpm test:accounts:db && pnpm build",
     "test": "jest",
     "test:e2e": "jest --config test/jest-e2e.json",
+    "test:accounts:db": "tsx --test test/accounts-migration.integration.ts",
     "benchmark:auth": "node scripts/benchmark-auth.mjs",
     "verify:home": "node scripts/verify-home-flow.mjs",
     "prisma:generate": "prisma generate",
@@ -38,6 +39,7 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.25.1",
     "@nestjs/cli": "^11.0.0",

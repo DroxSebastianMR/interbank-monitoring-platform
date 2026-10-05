@@ -1,5 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-
+import { Injectable } from '@nestjs/common';
+import type { ListAccountsQueryDto } from '@/modules/accounts/dto/list-accounts-query.dto';
+import { AccountErrorCode } from '@/modules/accounts/enums/account-error-code.enum';
+import { AccountExceptionFactory } from '@/modules/accounts/exceptions/account-exception.factory';
+import { AccountsMapper } from '@/modules/accounts/mappers/accounts.mapper';
 import { AccountsRepository } from '@/modules/accounts/repositories/accounts.repository';
 import { SimulationService } from '@/modules/simulation/services/simulation.service';
 
@@ -13,40 +16,33 @@ export class AccountsService {
     await this.simulation.apply('accounts');
     return { status: 'ok', service: 'accounts' };
   }
-  async list(userId: string) {
+  async list(userId: string, query: ListAccountsQueryDto = {}) {
     await this.simulation.apply('accounts');
-    const accounts = await this.repository.findByUser(userId);
-    return accounts.map((account) => ({
-      ...account,
-      accountNumber: this.maskAccountNumber(account.accountNumber),
-      balance: account.balance.toFixed(2),
-    }));
+    const accounts = await this.repository.findByUser(userId, query);
+    return accounts.map((account) => AccountsMapper.account(account));
   }
-
+  async detail(userId: string, accountId: string) {
+    await this.simulation.apply('accounts');
+    return AccountsMapper.account(await this.requireOwnedAccount(userId, accountId));
+  }
+  async identifiers(userId: string, accountId: string) {
+    await this.simulation.apply('accounts');
+    return AccountsMapper.identifiers(await this.requireOwnedAccount(userId, accountId));
+  }
   async balance(userId: string, accountId: string) {
     await this.simulation.apply('accounts');
-    const account = await this.repository.findOwnedById(userId, accountId);
-    if (!account) throw new NotFoundException('Cuenta no encontrada');
+    const account = await this.requireOwnedAccount(userId, accountId);
     return {
       accountId: account.id,
       currency: account.currency,
       availableBalance: account.balance.toFixed(2),
+      status: account.status,
+      canDebit: AccountsMapper.account(account).canDebit,
     };
   }
-
-  async transactions(userId: string, accountId: string, limit: number) {
-    await this.simulation.apply('accounts');
+  async requireOwnedAccount(userId: string, accountId: string) {
     const account = await this.repository.findOwnedById(userId, accountId);
-    if (!account) throw new NotFoundException('Cuenta no encontrada');
-    const transactions = await this.repository.findTransactions(userId, accountId, limit);
-    return transactions.map((transaction) => ({
-      ...transaction,
-      amount: transaction.amount.toFixed(2),
-      occurredAt: transaction.occurredAt.toISOString(),
-    }));
-  }
-
-  private maskAccountNumber(accountNumber: string): string {
-    return `${'*'.repeat(Math.max(0, accountNumber.length - 4))}${accountNumber.slice(-4)}`;
+    if (!account) AccountExceptionFactory.notFound(AccountErrorCode.ACCOUNT_NOT_FOUND);
+    return account;
   }
 }

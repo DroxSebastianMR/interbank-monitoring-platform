@@ -27,6 +27,47 @@ enum Currency {
 enum AccountType {
   SAVINGS
   CHECKING
+  CTS
+  TERM_DEPOSIT
+
+  @@schema("app")
+}
+
+enum AccountStatus {
+  ACTIVE
+  BLOCKED
+  CLOSED
+
+  @@schema("app")
+}
+
+enum CardKind {
+  DEBIT
+  CREDIT
+
+  @@schema("app")
+}
+
+enum CardStatus {
+  ACTIVE
+  BLOCKED
+  EXPIRED
+  CANCELLED
+
+  @@schema("app")
+}
+
+enum CardNetwork {
+  VISA
+  MASTERCARD
+  AMEX
+
+  @@schema("app")
+}
+
+enum CardFormat {
+  PHYSICAL
+  DIGITAL
 
   @@schema("app")
 }
@@ -95,6 +136,7 @@ model User {
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   accounts             Account[]
+  cards                Card[]
   servicePayments      ServicePayment[]
   savedServicePayments SavedServicePayment[]
 
@@ -104,23 +146,123 @@ model User {
 }
 
 model Account {
-  id                String           @id @default(uuid()) @db.Uuid
-  userId            String           @db.Uuid
-  displayName       String           @db.VarChar(100)
-  accountNumber     String           @unique @db.VarChar(20)
-  balance           Decimal          @default(0) @db.Decimal(14, 2)
-  currency          Currency         @default(PEN)
-  type              AccountType      @default(SAVINGS)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String                @id @default(uuid()) @db.Uuid
+  userId            String                @db.Uuid
+  displayName       String                @db.VarChar(100)
+  accountNumber     String                @unique @db.VarChar(20)
+  balance           Decimal               @default(0) @db.Decimal(14, 2)
+  currency          Currency              @default(PEN)
+  type              AccountType           @default(SAVINGS)
+  accountTypeId     String                @default("50000000-0000-4000-8000-000000000001") @db.Uuid
+  status            AccountStatus         @default(ACTIVE)
+  cci               String                @unique @db.Char(20)
+  closedAt          DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions      Transaction[]
-  outgoingTransfers Transfer[]       @relation("TransferSource")
-  incomingTransfers Transfer[]       @relation("TransferDestination")
+  outgoingTransfers Transfer[]            @relation("TransferSource")
+  incomingTransfers Transfer[]            @relation("TransferDestination")
   servicePayments   ServicePayment[]
+  accountType       AccountTypeDefinition @relation(fields: [accountTypeId, type], references: [id, type], onDelete: Restrict)
+  cardLinks         AccountCard[]
 
+  @@unique([id, userId])
   @@index([userId, currency])
+  @@index([userId, status, accountTypeId])
   @@map("accounts")
+  @@schema("app")
+}
+
+model AccountTypeDefinition {
+  id                  String      @id @default(uuid()) @db.Uuid
+  code                String      @unique @db.VarChar(40)
+  name                String      @db.VarChar(100)
+  description         String      @db.VarChar(300)
+  type                AccountType
+  supportedCurrencies Currency[]
+  allowsDebits        Boolean     @default(true)
+  isActive            Boolean     @default(true)
+  displayOrder        Int         @default(0)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  accounts            Account[]
+
+  @@unique([id, type])
+  @@index([isActive, displayOrder])
+  @@map("account_types")
+  @@schema("app")
+}
+
+model CardType {
+  id           String      @id @default(uuid()) @db.Uuid
+  code         String      @unique @db.VarChar(40)
+  name         String      @db.VarChar(100)
+  description  String      @db.VarChar(300)
+  kind         CardKind
+  network      CardNetwork
+  isActive     Boolean     @default(true)
+  displayOrder Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  cards        Card[]
+
+  @@unique([id, kind])
+  @@index([isActive, kind, displayOrder])
+  @@map("card_types")
+  @@schema("app")
+}
+
+model Card {
+  id             String              @id @default(uuid()) @db.Uuid
+  userId         String              @db.Uuid
+  cardTypeId     String              @db.Uuid
+  kind           CardKind
+  lastFour       String              @db.Char(4)
+  displayName    String              @db.VarChar(100)
+  status         CardStatus          @default(ACTIVE)
+  format         CardFormat          @default(PHYSICAL)
+  expiresAt      DateTime            @db.Date
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  user           User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  cardType       CardType            @relation(fields: [cardTypeId, kind], references: [id, kind], onDelete: Restrict)
+  accountLinks   AccountCard[]
+  creditBalances CardCreditBalance[]
+
+  @@unique([id, userId, kind])
+  @@unique([id, kind])
+  @@index([userId, status, kind])
+  @@map("cards")
+  @@schema("app")
+}
+
+model AccountCard {
+  accountId String   @db.Uuid
+  cardId    String   @db.Uuid
+  userId    String   @db.Uuid
+  kind      CardKind @default(DEBIT)
+  createdAt DateTime @default(now())
+  account   Account  @relation(fields: [accountId, userId], references: [id, userId], onDelete: Restrict)
+  card      Card     @relation(fields: [cardId, userId, kind], references: [id, userId, kind], onDelete: Restrict)
+
+  @@id([accountId, cardId])
+  @@index([cardId])
+  @@map("account_cards")
+  @@schema("app")
+}
+
+model CardCreditBalance {
+  cardId             String   @db.Uuid
+  currency           Currency
+  kind               CardKind @default(CREDIT)
+  creditLimit        Decimal  @db.Decimal(14, 2)
+  outstandingBalance Decimal  @default(0) @db.Decimal(14, 2)
+  updatedAt          DateTime @updatedAt
+  card               Card     @relation(fields: [cardId, kind], references: [id, kind], onDelete: Restrict)
+
+  @@id([cardId, currency])
+  @@map("card_credit_balances")
   @@schema("app")
 }
 
@@ -140,7 +282,7 @@ model Transaction {
   transfer       Transfer?            @relation(fields: [transferId], references: [id])
   servicePayment ServicePayment?
 
-  @@index([accountId, occurredAt(sort: Desc)])
+  @@index([accountId, occurredAt(sort: Desc), id(sort: Desc)])
   @@index([transferId])
   @@map("transactions")
   @@schema("app")

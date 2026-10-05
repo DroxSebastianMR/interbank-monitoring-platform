@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
+import { SimulatedCciPolicy } from '@/modules/accounts/policies/simulated-cci.policy';
+import { seedAccountCatalog, seedDemoCards } from './seeds/accounts.seed';
 
 const prisma = new PrismaClient();
 
@@ -156,6 +158,7 @@ const agreementSeeds = [
 ];
 
 async function main() {
+  await seedAccountCatalog(prisma);
   const passwordHash = await hash('DemoSecure123!', 12);
 
   const user = await prisma.user.upsert({
@@ -182,6 +185,7 @@ async function main() {
     },
     create: {
       id: '00000000-0000-4000-8000-000000000001',
+      cci: SimulatedCciPolicy.generate('00000000-0000-4000-8000-000000000001'),
       userId: user.id,
       displayName: 'Cuenta Simple Soles',
       accountNumber: '2003000000001',
@@ -202,6 +206,7 @@ async function main() {
     },
     create: {
       id: '00000000-0000-4000-8000-000000000003',
+      cci: SimulatedCciPolicy.generate('00000000-0000-4000-8000-000000000003'),
       userId: user.id,
       displayName: 'Cuenta Ahorro Meta',
       accountNumber: '2003000000003',
@@ -222,6 +227,7 @@ async function main() {
     },
     create: {
       id: '00000000-0000-4000-8000-000000000002',
+      cci: SimulatedCciPolicy.generate('00000000-0000-4000-8000-000000000002'),
       userId: user.id,
       displayName: 'Cuenta Simple Dólares',
       accountNumber: '2003000000002',
@@ -275,6 +281,8 @@ async function main() {
     },
   });
 
+  await seedDemoCards(prisma, user.id);
+
   for (const category of categorySeeds) {
     await prisma.serviceCategory.upsert({
       where: { code: category.code },
@@ -284,10 +292,11 @@ async function main() {
   }
 
   for (const provider of providerSeeds) {
+    const providerData = { ...provider, searchAliases: [...provider.searchAliases] };
     await prisma.serviceProvider.upsert({
       where: { code: provider.code },
-      update: provider,
-      create: provider,
+      update: providerData,
+      create: providerData,
     });
   }
 

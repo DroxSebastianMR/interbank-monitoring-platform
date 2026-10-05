@@ -1,10 +1,12 @@
+import type { AccountType } from '@prisma/client';
+
 export interface HomeAccountSnapshot {
   id: string;
   displayName: string;
   accountNumber: string;
   balance: string;
   currency: 'PEN' | 'USD';
-  type: 'SAVINGS' | 'CHECKING';
+  type: AccountType;
 }
 
 export interface HomeTransactionSnapshot {

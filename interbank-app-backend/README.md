@@ -27,6 +27,8 @@ La estrategia de conexiones está en [`docs/DATABASE.md`](docs/DATABASE.md) y la
 diferencia entre specs, mocks, seed y E2E en [`docs/TESTING.md`](docs/TESTING.md).
 El contrato del menú, cuentas y operaciones está en
 [`docs/HOME_BANKING.md`](docs/HOME_BANKING.md).
+El modelo de cuentas, catálogos, tarjetas y CCI simulado está en
+[`docs/ACCOUNTS.md`](docs/ACCOUNTS.md).
 
 ## Configuración y ejecución
 
