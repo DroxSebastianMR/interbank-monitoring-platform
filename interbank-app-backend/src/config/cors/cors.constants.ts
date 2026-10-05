@@ -2,7 +2,13 @@ export const DEFAULT_CORS_ORIGINS = ['http://localhost:5173', 'http://localhost:
 
 export const CORS_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
-export const CORS_ALLOWED_HEADERS = ['Accept', 'Authorization', 'Content-Type', 'X-Request-Id'];
+export const CORS_ALLOWED_HEADERS = [
+  'Accept',
+  'Authorization',
+  'Content-Type',
+  'X-Request-Id',
+  'Idempotency-Key',
+];
 
 export const CORS_EXPOSED_HEADERS = ['X-Request-Id'];
 

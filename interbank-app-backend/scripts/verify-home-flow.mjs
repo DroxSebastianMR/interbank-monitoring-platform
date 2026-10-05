@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 const baseUrl = process.env.VERIFY_BASE_URL ?? 'http://127.0.0.1:3000';
 
 async function request(path, options = {}) {
@@ -8,12 +10,13 @@ async function request(path, options = {}) {
   return { response, payload, elapsedMs };
 }
 
-function jsonOptions(method, body, accessToken) {
+function jsonOptions(method, body, accessToken, idempotencyKey) {
   return {
     method,
     headers: {
       'content-type': 'application/json',
       ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
     body: JSON.stringify(body),
   };
@@ -63,6 +66,7 @@ const transfer = await request(
       description: 'Transferencia de verificación',
     },
     accessToken,
+    randomUUID(),
   ),
 );
 if (!transfer.response.ok) {
