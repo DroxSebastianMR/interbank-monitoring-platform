@@ -1,0 +1,1 @@
+import { useQuery } from '@tanstack/react-query'; import { getServices } from '../services/api/monitoring'; export const useServices=()=>useQuery({queryKey:['monitored-services'],queryFn:getServices,refetchInterval:10000});

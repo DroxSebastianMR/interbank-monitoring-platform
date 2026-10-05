@@ -1,0 +1,3 @@
+import { NavLink, Outlet } from 'react-router-dom';
+const links=[['/','Resumen'],['/services','Servicios'],['/incidents','Incidentes'],['/alerts','Alertas'],['/analytics','Analítica'],['/health','Health']];
+export function AppLayout(){return <div className="shell"><aside><div className="brand"><span className="pulse"/>Sentinel</div><p className="eyebrow">MONITORING PLATFORM</p><nav>{links.map(([to,label])=><NavLink key={to} to={to} end={to==='/' }>{label}</NavLink>)}</nav><div className="aside-foot"><span className="dot"/>Plataforma activa</div></aside><main><header><div><p className="eyebrow">CENTRO DE OPERACIONES</p><h1>Estado de servicios</h1></div><div className="operator">SM</div></header><Outlet/></main></div>}

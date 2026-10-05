@@ -1,0 +1,176 @@
+name: interbank-monitoring
+
+x-app-backend: &app-backend
+  build:
+    context: ../interbank-app-backend
+  restart: unless-stopped
+  environment: &app-environment
+    APP_PORT: 3000
+    NODE_ENV: development
+    DATABASE_URL: ${APP_DATABASE_URL}
+    DIRECT_URL: ${APP_DIRECT_DATABASE_URL}
+    JWT_SECRET: ${APP_JWT_SECRET}
+    JWT_ACCESS_TTL_SECONDS: ${JWT_ACCESS_TTL_SECONDS:-900}
+    AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-2592000}
+    SESSION_CACHE_DRIVER: redis
+    REDIS_HOST: redis
+    REDIS_PORT: 6379
+    SIMULATION_ENABLED: ${SIMULATION_ENABLED:-true}
+    CORS_ORIGINS: ${APP_CORS_ORIGINS:-http://localhost:5173,http://localhost:8081}
+  networks: [monitoring-network]
+  depends_on:
+    redis: {condition: service_healthy}
+  healthcheck:
+    test: [CMD, wget, -qO-, http://localhost:3000/health]
+    interval: 10s
+    timeout: 3s
+    retries: 5
+    start_period: 20s
+
+services:
+  app-backend-1:
+    <<: *app-backend
+    environment:
+      <<: *app-environment
+      INSTANCE_NAME: app-backend-1
+
+  app-backend-2:
+    <<: *app-backend
+    environment:
+      <<: *app-environment
+      INSTANCE_NAME: app-backend-2
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports: ["8080:80"]
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    networks: [monitoring-network]
+    depends_on:
+      app-backend-1: {condition: service_healthy}
+      app-backend-2: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -qO-, http://localhost/health]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: [redis-server, /usr/local/etc/redis/redis.conf]
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - redis-data:/data
+    networks: [monitoring-network]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  monitoring-ai:
+    build:
+      context: ../monitoring-ai
+    restart: unless-stopped
+    environment:
+      MODEL_MODE: baseline
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports: ["8000:8000"]
+    networks: [monitoring-network]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  monitoring-backend:
+    build:
+      context: ../monitoring-backend
+    restart: unless-stopped
+    environment:
+      MONITORING_PORT: 4000
+      NODE_ENV: development
+      DATABASE_URL: ${MONITORING_DATABASE_URL}
+      JWT_SECRET: ${MONITORING_JWT_SECRET}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AI_SERVICE_URL: http://monitoring-ai:8000
+      APP_BACKEND_URL: http://app-backend-1:3000
+      MONITOR_INTERVAL_MS: ${MONITOR_INTERVAL_MS:-10000}
+      MONITOR_TIMEOUT_MS: ${MONITOR_TIMEOUT_MS:-3000}
+      CORS_ORIGINS: ${MONITORING_CORS_ORIGINS:-http://localhost:5173}
+    ports: ["4000:4000"]
+    networks: [monitoring-network]
+    depends_on:
+      redis: {condition: service_healthy}
+      monitoring-ai: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -qO-, http://localhost:4000/health]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+  monitoring-dashboard:
+    build:
+      context: ../monitoring-dashboard
+      args:
+        VITE_API_URL: http://localhost:4000
+    restart: unless-stopped
+    ports: ["5173:80"]
+    networks: [monitoring-network]
+    depends_on:
+      monitoring-backend: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -qO-, http://localhost/dashboard-health]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:v3.3.0
+    restart: unless-stopped
+    command: [--config.file=/etc/prometheus/prometheus.yml, --storage.tsdb.path=/prometheus]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports: ["9090:9090"]
+    networks: [monitoring-network]
+
+  grafana:
+    image: grafana/grafana:11.6.1
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports: ["3001:3000"]
+    networks: [monitoring-network]
+    depends_on: [prometheus]
+
+  k6:
+    image: grafana/k6:0.57.0
+    profiles: [tools]
+    volumes:
+      - ./k6:/scripts:ro
+    environment:
+      BASE_URL: http://nginx
+    networks: [monitoring-network]
+    command: [run, /scripts/smoke.js]
+    depends_on:
+      nginx: {condition: service_healthy}
+
+networks:
+  monitoring-network:
+    name: interbank-monitoring-network
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:

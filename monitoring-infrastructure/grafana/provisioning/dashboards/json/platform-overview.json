@@ -1,0 +1,1 @@
+{"annotations":{"list":[]},"editable":true,"panels":[{"type":"stat","title":"Monitoring Backend Up","targets":[{"expr":"monitoring_backend_up","refId":"A"}],"gridPos":{"h":8,"w":8,"x":0,"y":0}}],"schemaVersion":40,"tags":["monitoring"],"templating":{"list":[]},"time":{"from":"now-15m","to":"now"},"title":"Platform Overview","uid":"platform-overview","version":1}

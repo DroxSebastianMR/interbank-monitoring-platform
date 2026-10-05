@@ -1,0 +1,29 @@
+{
+  "eslint.useFlatConfig": true,
+  "eslint.workingDirectories": [
+    {
+      "directory": "./interbank-app-backend",
+      "changeProcessCWD": true
+    },
+    {
+      "directory": "./monitoring-backend",
+      "changeProcessCWD": true
+    },
+    {
+      "directory": "./monitoring-dashboard",
+      "changeProcessCWD": true
+    }
+  ],
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "typescript.tsdk": "interbank-app-backend/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "prisma.pinToPrisma6": true
+}

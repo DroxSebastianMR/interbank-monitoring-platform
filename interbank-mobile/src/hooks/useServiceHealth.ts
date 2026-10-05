@@ -1,0 +1,1 @@
+import { useEffect,useState } from 'react'; import { api } from '../services/api'; import type { Availability } from '../types/banking'; export function useServiceHealth(){const [status,setStatus]=useState<Availability>('DEGRADED');useEffect(()=>{api.get('/health').then(()=>setStatus('OPERATIONAL')).catch(()=>setStatus('UNAVAILABLE'));},[]);return status;}

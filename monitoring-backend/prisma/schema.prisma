@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["monitoring"]
+}
+
+enum ServiceStatus {
+  OPERATIONAL
+  DEGRADED
+  UNAVAILABLE
+  RECOVERING
+  @@schema("monitoring")
+}
+
+model MonitoredService {
+  id            String        @id @default(uuid()) @db.Uuid
+  name          String
+  endpoint      String
+  status        ServiceStatus @default(RECOVERING)
+  lastCheckedAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  checks        HealthCheck[]
+  @@schema("monitoring")
+}
+
+model HealthCheck {
+  id        String           @id @default(uuid()) @db.Uuid
+  serviceId String           @db.Uuid
+  status    ServiceStatus
+  latencyMs Int
+  checkedAt DateTime         @default(now())
+  service   MonitoredService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  @@index([serviceId, checkedAt])
+  @@schema("monitoring")
+}
+
+model Incident {
+  id         String    @id @default(uuid()) @db.Uuid
+  serviceId  String    @db.Uuid
+  title      String
+  status     String
+  openedAt   DateTime  @default(now())
+  resolvedAt DateTime?
+  @@schema("monitoring")
+}

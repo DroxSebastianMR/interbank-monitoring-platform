@@ -1,0 +1,313 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["app"]
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+  DISABLED
+
+  @@schema("app")
+}
+
+enum Currency {
+  PEN
+  USD
+
+  @@schema("app")
+}
+
+enum AccountType {
+  SAVINGS
+  CHECKING
+
+  @@schema("app")
+}
+
+enum TransactionType {
+  DEPOSIT
+  TRANSFER
+  SERVICE_PAYMENT
+
+  @@schema("app")
+}
+
+enum TransactionDirection {
+  CREDIT
+  DEBIT
+
+  @@schema("app")
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+
+  @@schema("app")
+}
+
+enum ServiceProviderStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+
+  @@schema("app")
+}
+
+enum PaymentReferenceType {
+  CUSTOMER_CODE
+  SUPPLY_NUMBER
+  CONTRACT_NUMBER
+  DOCUMENT_NUMBER
+  PHONE_NUMBER
+  OTHER
+
+  @@schema("app")
+}
+
+enum ServiceDebtStatus {
+  PENDING
+  PAID
+  EXPIRED
+  CANCELLED
+
+  @@schema("app")
+}
+
+model User {
+  id                   String                @id @default(uuid()) @db.Uuid
+  documentNumber       String                @unique @db.VarChar(8)
+  email                String                @unique @db.VarChar(254)
+  passwordHash         String
+  firstName            String?               @db.VarChar(100)
+  lastName             String?               @db.VarChar(100)
+  status               UserStatus            @default(ACTIVE)
+  lastLoginAt          DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  accounts             Account[]
+  servicePayments      ServicePayment[]
+  savedServicePayments SavedServicePayment[]
+
+  @@index([documentNumber, email])
+  @@map("users")
+  @@schema("app")
+}
+
+model Account {
+  id                String           @id @default(uuid()) @db.Uuid
+  userId            String           @db.Uuid
+  displayName       String           @db.VarChar(100)
+  accountNumber     String           @unique @db.VarChar(20)
+  balance           Decimal          @default(0) @db.Decimal(14, 2)
+  currency          Currency         @default(PEN)
+  type              AccountType      @default(SAVINGS)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+  outgoingTransfers Transfer[]       @relation("TransferSource")
+  incomingTransfers Transfer[]       @relation("TransferDestination")
+  servicePayments   ServicePayment[]
+
+  @@index([userId, currency])
+  @@map("accounts")
+  @@schema("app")
+}
+
+model Transaction {
+  id             String               @id @default(uuid()) @db.Uuid
+  accountId      String               @db.Uuid
+  transferId     String?              @db.Uuid
+  type           TransactionType
+  direction      TransactionDirection
+  status         TransactionStatus    @default(COMPLETED)
+  amount         Decimal              @db.Decimal(14, 2)
+  currency       Currency
+  description    String               @db.VarChar(160)
+  reference      String?              @db.VarChar(80)
+  occurredAt     DateTime             @default(now())
+  account        Account              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  transfer       Transfer?            @relation(fields: [transferId], references: [id])
+  servicePayment ServicePayment?
+
+  @@index([accountId, occurredAt(sort: Desc)])
+  @@index([transferId])
+  @@map("transactions")
+  @@schema("app")
+}
+
+model Transfer {
+  id                   String            @id @default(uuid()) @db.Uuid
+  sourceAccountId      String            @db.Uuid
+  destinationAccountId String            @db.Uuid
+  amount               Decimal           @db.Decimal(14, 2)
+  currency             Currency
+  status               TransactionStatus @default(COMPLETED)
+  description          String?           @db.VarChar(160)
+  createdAt            DateTime          @default(now())
+  completedAt          DateTime?
+  sourceAccount        Account           @relation("TransferSource", fields: [sourceAccountId], references: [id])
+  destinationAccount   Account           @relation("TransferDestination", fields: [destinationAccountId], references: [id])
+  transactions         Transaction[]
+
+  @@index([sourceAccountId, createdAt(sort: Desc)])
+  @@index([destinationAccountId, createdAt(sort: Desc)])
+  @@map("transfers")
+  @@schema("app")
+}
+
+model ServicePayment {
+  id                   String            @id @default(uuid()) @db.Uuid
+  userId               String            @db.Uuid
+  accountId            String            @db.Uuid
+  serviceAgreementId   String            @db.Uuid
+  debtId               String?           @db.Uuid
+  transactionId        String            @unique @db.Uuid
+  operationNumber      String            @unique @db.VarChar(32)
+  idempotencyKey       String            @db.VarChar(80)
+  requestFingerprint   String            @db.Char(64)
+  customerReference    String            @db.VarChar(80)
+  providerNameSnapshot String            @db.VarChar(120)
+  serviceNameSnapshot  String            @db.VarChar(120)
+  amount               Decimal           @db.Decimal(14, 2)
+  commissionAmount     Decimal           @default(0) @db.Decimal(14, 2)
+  totalAmount          Decimal           @db.Decimal(14, 2)
+  currency             Currency
+  status               TransactionStatus @default(COMPLETED)
+  paidAt               DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  user                 User              @relation(fields: [userId], references: [id])
+  account              Account           @relation(fields: [accountId], references: [id])
+  serviceAgreement     ServiceAgreement  @relation(fields: [serviceAgreementId], references: [id])
+  debt                 ServiceDebt?      @relation(fields: [debtId], references: [id])
+  transaction          Transaction       @relation(fields: [transactionId], references: [id])
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([accountId, createdAt(sort: Desc)])
+  @@index([serviceAgreementId, customerReference])
+  @@index([debtId])
+  @@map("service_payments")
+  @@schema("app")
+}
+
+model ServiceCategory {
+  id           String            @id @default(uuid()) @db.Uuid
+  code         String            @unique @db.VarChar(40)
+  name         String            @db.VarChar(80)
+  description  String?           @db.VarChar(240)
+  iconKey      String            @db.VarChar(60)
+  displayOrder Int               @default(0)
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  providers    ServiceProvider[]
+
+  @@index([isActive, displayOrder])
+  @@map("service_categories")
+  @@schema("app")
+}
+
+model ServiceProvider {
+  id            String                @id @default(uuid()) @db.Uuid
+  categoryId    String                @db.Uuid
+  code          String                @unique @db.VarChar(50)
+  name          String                @db.VarChar(120)
+  shortName     String                @db.VarChar(60)
+  legalName     String?               @db.VarChar(180)
+  logoUrl       String?               @db.VarChar(500)
+  searchAliases String[]              @default([])
+  displayOrder  Int                   @default(0)
+  status        ServiceProviderStatus @default(ACTIVE)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  category      ServiceCategory       @relation(fields: [categoryId], references: [id])
+  agreements    ServiceAgreement[]
+
+  @@index([categoryId, status, displayOrder])
+  @@index([status, name])
+  @@map("service_providers")
+  @@schema("app")
+}
+
+model ServiceAgreement {
+  id                     String                @id @default(uuid()) @db.Uuid
+  providerId             String                @db.Uuid
+  code                   String                @unique @db.VarChar(60)
+  name                   String                @db.VarChar(120)
+  description            String?               @db.VarChar(240)
+  referenceLabel         String                @db.VarChar(80)
+  referenceType          PaymentReferenceType
+  referencePattern       String?               @db.VarChar(160)
+  referenceMinLength     Int                   @default(1)
+  referenceMaxLength     Int                   @default(80)
+  supportsDebtInquiry    Boolean               @default(true)
+  supportsPartialPayment Boolean               @default(false)
+  currency               Currency              @default(PEN)
+  commissionAmount       Decimal               @default(0) @db.Decimal(14, 2)
+  minimumAmount          Decimal?              @db.Decimal(14, 2)
+  maximumAmount          Decimal?              @db.Decimal(14, 2)
+  isActive               Boolean               @default(true)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  provider               ServiceProvider       @relation(fields: [providerId], references: [id])
+  debts                  ServiceDebt[]
+  payments               ServicePayment[]
+  savedPayments          SavedServicePayment[]
+
+  @@index([providerId, isActive, name])
+  @@map("service_agreements")
+  @@schema("app")
+}
+
+model ServiceDebt {
+  id                   String            @id @default(uuid()) @db.Uuid
+  serviceAgreementId   String            @db.Uuid
+  customerReference    String            @db.VarChar(80)
+  invoiceNumber        String            @db.VarChar(80)
+  description          String            @db.VarChar(160)
+  amount               Decimal           @db.Decimal(14, 2)
+  minimumPaymentAmount Decimal?          @db.Decimal(14, 2)
+  currency             Currency
+  issuedAt             DateTime
+  dueDate              DateTime
+  status               ServiceDebtStatus @default(PENDING)
+  paidAt               DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  serviceAgreement     ServiceAgreement  @relation(fields: [serviceAgreementId], references: [id])
+  payments             ServicePayment[]
+
+  @@unique([serviceAgreementId, invoiceNumber])
+  @@index([serviceAgreementId, customerReference, status, dueDate])
+  @@map("service_debts")
+  @@schema("app")
+}
+
+model SavedServicePayment {
+  id                 String           @id @default(uuid()) @db.Uuid
+  userId             String           @db.Uuid
+  serviceAgreementId String           @db.Uuid
+  alias              String           @db.VarChar(80)
+  customerReference  String           @db.VarChar(80)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceAgreement   ServiceAgreement @relation(fields: [serviceAgreementId], references: [id])
+
+  @@unique([userId, serviceAgreementId, customerReference])
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("saved_service_payments")
+  @@schema("app")
+}

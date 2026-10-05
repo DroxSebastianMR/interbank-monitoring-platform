@@ -1,0 +1,7 @@
+services:
+  redis:
+    ports: ["6379:6379"]
+  app-backend-1:
+    ports: ["3000:3000"]
+  app-backend-2:
+    ports: ["3002:3000"]

@@ -1,0 +1,1 @@
+export function PlaceholderPage({title}:{title:string}){return <section><div className="section-title"><h2>{title}</h2></div><div className="notice">Módulo preparado para la siguiente iteración.</div></section>}
