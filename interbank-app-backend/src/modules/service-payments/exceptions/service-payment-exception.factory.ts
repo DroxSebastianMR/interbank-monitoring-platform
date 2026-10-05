@@ -5,6 +5,7 @@ import { ServicePaymentDomainError } from '@/modules/service-payments/exceptions
 
 const FAILURE_MESSAGES: Record<ServicePaymentFailureReason, string> = {
   ACCOUNT_NOT_FOUND: 'Cuenta de cargo no encontrada',
+  ACCOUNT_UNAVAILABLE: 'La cuenta de cargo no admite pagos de servicios',
   SERVICE_NOT_FOUND: 'Servicio de pago no encontrado',
   SERVICE_UNAVAILABLE: 'El servicio de pago no está disponible',
   INVALID_CUSTOMER_REFERENCE: 'Código de identificación inválido',

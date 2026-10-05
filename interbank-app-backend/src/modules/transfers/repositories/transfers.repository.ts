@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { AccountStatus } from '@prisma/client';
 
 import { PrismaService } from '@/common/prisma/prisma.service';
 import {
@@ -20,11 +21,22 @@ export class TransfersRepository {
       const [source, destination] = await Promise.all([
         transaction.account.findFirst({
           where: { id: input.fromAccountId, userId },
-          select: { id: true, currency: true },
+          select: {
+            id: true,
+            currency: true,
+            status: true,
+            accountType: { select: { allowsDebits: true } },
+          },
         }),
         transaction.account.findUnique({
           where: { id: input.toAccountId },
-          select: { id: true, displayName: true, currency: true },
+          select: {
+            id: true,
+            displayName: true,
+            currency: true,
+            status: true,
+            accountType: { select: { allowsDebits: true } },
+          },
         }),
       ]);
 
@@ -32,22 +44,42 @@ export class TransfersRepository {
       if (!destination) {
         throw new TransferDomainError(TransferFailureReason.DESTINATION_NOT_FOUND);
       }
+      if (
+        source.status !== AccountStatus.ACTIVE ||
+        destination.status !== AccountStatus.ACTIVE ||
+        !source.accountType.allowsDebits ||
+        !destination.accountType.allowsDebits
+      ) {
+        throw new TransferDomainError(TransferFailureReason.ACCOUNT_UNAVAILABLE);
+      }
       if (source.currency !== destination.currency) {
         throw new TransferDomainError(TransferFailureReason.CURRENCY_MISMATCH);
       }
 
       const debit = await transaction.account.updateMany({
-        where: { id: source.id, userId, balance: { gte: input.amount } },
+        where: {
+          id: source.id,
+          userId,
+          status: AccountStatus.ACTIVE,
+          accountType: { allowsDebits: true },
+          balance: { gte: input.amount },
+        },
         data: { balance: { decrement: input.amount } },
       });
       if (debit.count !== 1) {
         throw new TransferDomainError(TransferFailureReason.INSUFFICIENT_FUNDS);
       }
 
-      await transaction.account.update({
-        where: { id: destination.id },
+      const credit = await transaction.account.updateMany({
+        where: {
+          id: destination.id,
+          status: AccountStatus.ACTIVE,
+          accountType: { allowsDebits: true },
+        },
         data: { balance: { increment: input.amount } },
       });
+      if (credit.count !== 1)
+        throw new TransferDomainError(TransferFailureReason.ACCOUNT_UNAVAILABLE);
 
       const completedAt = new Date();
       const transfer = await transaction.transfer.create({

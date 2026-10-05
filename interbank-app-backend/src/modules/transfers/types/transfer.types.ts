@@ -4,6 +4,7 @@ export enum TransferFailureReason {
   SAME_ACCOUNT = 'SAME_ACCOUNT',
   CURRENCY_MISMATCH = 'CURRENCY_MISMATCH',
   INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',
+  ACCOUNT_UNAVAILABLE = 'ACCOUNT_UNAVAILABLE',
 }
 
 export class TransferDomainError extends Error {

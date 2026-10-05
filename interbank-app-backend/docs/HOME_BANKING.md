@@ -38,6 +38,10 @@ que el siguiente `GET /home` vuelve a consultar saldos vigentes.
 
 ## Paths
 
+La ampliación de cuentas, tipos de productos, tarjetas y movimientos por cursor
+se documenta en [ACCOUNTS.md](ACCOUNTS.md). Los endpoints anteriores mantienen
+sus respuestas en array; los nuevos campos y rutas complementan el contrato.
+
 | Método | Path                          | Responsabilidad                                     |
 | ------ | ----------------------------- | --------------------------------------------------- |
 | `GET`  | `/home`                       | Composición del menú principal                      |

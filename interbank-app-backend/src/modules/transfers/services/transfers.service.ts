@@ -42,6 +42,12 @@ export class TransfersService {
   }
 
   private throwHttpError(reason: TransferFailureReason): never {
+    if (reason === TransferFailureReason.ACCOUNT_UNAVAILABLE) {
+      throw new BadRequestException({
+        code: reason,
+        message: 'La cuenta no admite esta operación',
+      });
+    }
     if (
       reason === TransferFailureReason.SOURCE_NOT_FOUND ||
       reason === TransferFailureReason.DESTINATION_NOT_FOUND

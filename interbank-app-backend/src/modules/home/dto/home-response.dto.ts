@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { AccountType } from '@prisma/client';
 
 export class HomeBalanceSummaryDto {
   @ApiProperty({ enum: ['PEN', 'USD'] }) currency!: 'PEN' | 'USD';
@@ -12,7 +13,7 @@ export class HomeAccountDto {
   @ApiProperty({ example: '*********0001' }) maskedAccountNumber!: string;
   @ApiProperty({ example: '4250.50' }) availableBalance!: string;
   @ApiProperty({ enum: ['PEN', 'USD'] }) currency!: 'PEN' | 'USD';
-  @ApiProperty({ enum: ['SAVINGS', 'CHECKING'] }) type!: 'SAVINGS' | 'CHECKING';
+  @ApiProperty({ enum: AccountType }) type!: AccountType;
 }
 
 export class HomeQuickActionDto {
