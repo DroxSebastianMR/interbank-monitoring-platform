@@ -41,6 +41,13 @@ enum AccountStatus {
   @@schema("app")
 }
 
+enum TransferKind {
+  OWN_ACCOUNTS
+  THIRD_PARTY
+
+  @@schema("app")
+}
+
 enum CardKind {
   DEBIT
   CREDIT
@@ -137,6 +144,7 @@ model User {
   updatedAt            DateTime              @updatedAt
   accounts             Account[]
   cards                Card[]
+  initiatedTransfers   Transfer[]
   servicePayments      ServicePayment[]
   savedServicePayments SavedServicePayment[]
 
@@ -282,6 +290,7 @@ model Transaction {
   transfer       Transfer?            @relation(fields: [transferId], references: [id])
   servicePayment ServicePayment?
 
+  @@unique([transferId, direction])
   @@index([accountId, occurredAt(sort: Desc), id(sort: Desc)])
   @@index([transferId])
   @@map("transactions")
@@ -292,18 +301,26 @@ model Transfer {
   id                   String            @id @default(uuid()) @db.Uuid
   sourceAccountId      String            @db.Uuid
   destinationAccountId String            @db.Uuid
+  userId               String            @db.Uuid
+  kind                 TransferKind
+  operationNumber      String            @unique @db.VarChar(32)
+  idempotencyKey       String            @db.VarChar(80)
+  requestFingerprint   String            @db.Char(64)
   amount               Decimal           @db.Decimal(14, 2)
   currency             Currency
   status               TransactionStatus @default(COMPLETED)
   description          String?           @db.VarChar(160)
   createdAt            DateTime          @default(now())
   completedAt          DateTime?
-  sourceAccount        Account           @relation("TransferSource", fields: [sourceAccountId], references: [id])
+  sourceAccount        Account           @relation("TransferSource", fields: [sourceAccountId, userId], references: [id, userId])
   destinationAccount   Account           @relation("TransferDestination", fields: [destinationAccountId], references: [id])
   transactions         Transaction[]
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-  @@index([sourceAccountId, createdAt(sort: Desc)])
-  @@index([destinationAccountId, createdAt(sort: Desc)])
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([sourceAccountId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([destinationAccountId, createdAt(sort: Desc), id(sort: Desc)])
   @@map("transfers")
   @@schema("app")
 }

@@ -29,6 +29,8 @@ El contrato del menú, cuentas y operaciones está en
 [`docs/HOME_BANKING.md`](docs/HOME_BANKING.md).
 El modelo de cuentas, catálogos, tarjetas y CCI simulado está en
 [`docs/ACCOUNTS.md`](docs/ACCOUNTS.md).
+El flujo de transferencias, búsqueda de destinatarios e idempotencia está en
+[`docs/TRANSFERS.md`](docs/TRANSFERS.md).
 
 ## Configuración y ejecución
 

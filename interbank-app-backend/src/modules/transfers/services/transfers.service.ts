@@ -1,16 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-
+import { Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { SimulationService } from '@/modules/simulation/services/simulation.service';
 import { HomeCacheService } from '@/modules/home/services/home-cache.service';
 import { CreateTransferDto } from '@/modules/transfers/dto/create-transfer.dto';
 import { TransfersRepository } from '@/modules/transfers/repositories/transfers.repository';
-import {
-  TransferDomainError,
-  TransferFailureReason,
-} from '@/modules/transfers/types/transfer.types';
+import { TransferExceptionFactory } from '@/modules/transfers/exceptions/transfer-exception.factory';
+import { TransferPolicy } from '@/modules/transfers/policies/transfer.policy';
+import { TransferMapper } from '@/modules/transfers/mappers/transfer.mapper';
 
 @Injectable()
 export class TransfersService {
+  private readonly logger = new Logger(TransfersService.name);
   constructor(
     private readonly simulation: SimulationService,
     private readonly repository: TransfersRepository,
@@ -20,46 +20,34 @@ export class TransfersService {
     await this.simulation.apply('transfers');
     return { status: 'ok', service: 'transfers' };
   }
-  async create(userId: string, dto: CreateTransferDto) {
-    await this.simulation.apply('transfers');
+  async create(userId: string, dto: CreateTransferDto, idempotencyKey?: string) {
     try {
-      const transfer = await this.repository.executeInternal(userId, dto);
-      await this.homeCache.invalidate(userId);
-      return {
-        id: transfer.id,
-        status: transfer.status,
-        fromAccountId: transfer.sourceAccountId,
-        toAccountId: transfer.destinationAccountId,
-        amount: transfer.amount.toFixed(2),
-        currency: transfer.currency,
-        createdAt: transfer.createdAt.toISOString(),
-        completedAt: transfer.completedAt?.toISOString(),
-      };
-    } catch (error) {
-      if (!(error instanceof TransferDomainError)) throw error;
-      this.throwHttpError(error.reason);
-    }
-  }
-
-  private throwHttpError(reason: TransferFailureReason): never {
-    if (reason === TransferFailureReason.ACCOUNT_UNAVAILABLE) {
-      throw new BadRequestException({
-        code: reason,
-        message: 'La cuenta no admite esta operación',
+      const amount = TransferPolicy.amount(dto.amount);
+      const key = TransferPolicy.key(idempotencyKey);
+      await this.simulation.apply('transfers');
+      const result = await this.repository.executeInternal(userId, {
+        fromAccountId: dto.fromAccountId.toLowerCase(),
+        toAccountId: dto.toAccountId.toLowerCase(),
+        amount,
+        currency: dto.currency,
+        description: dto.description?.trim() || undefined,
+        idempotencyKey: key,
+        requestFingerprint: TransferPolicy.fingerprint(dto, amount),
+        operationNumber: `TRF-${randomUUID().replaceAll('-', '').slice(0, 28).toUpperCase()}`,
       });
+      // A cache failure must not turn a committed transfer into a payment failure.
+      const participants = new Set([
+        result.transfer.userId,
+        result.transfer.destinationAccount.userId,
+      ]);
+      const invalidations = await Promise.allSettled(
+        [...participants].map((id) => this.homeCache.invalidate(id)),
+      );
+      if (invalidations.some((item) => item.status === 'rejected'))
+        this.logger.warn('Transfer confirmed; home cache invalidation failed');
+      return TransferMapper.transfer(result.transfer, userId, result.replayed);
+    } catch (error) {
+      TransferExceptionFactory.rethrow(error);
     }
-    if (
-      reason === TransferFailureReason.SOURCE_NOT_FOUND ||
-      reason === TransferFailureReason.DESTINATION_NOT_FOUND
-    ) {
-      throw new NotFoundException('Cuenta de origen o destino no encontrada');
-    }
-    if (reason === TransferFailureReason.INSUFFICIENT_FUNDS) {
-      throw new BadRequestException('Saldo insuficiente');
-    }
-    if (reason === TransferFailureReason.CURRENCY_MISMATCH) {
-      throw new BadRequestException('Las cuentas deben utilizar la misma moneda');
-    }
-    throw new BadRequestException('La cuenta de origen y destino deben ser diferentes');
   }
 }
