@@ -1,3 +1,5 @@
+import type { BiometricFailure } from "@/src/domain/auth/biometric.types";
+
 export type AuthStatus = "checking" | "authenticated" | "unauthenticated";
 export type AuthEntryMode = "first-login" | "device-login";
 
@@ -17,4 +19,10 @@ export interface LoginCredentials {
 
 export interface DeviceLoginCredentials {
   password: string;
+  enableBiometrics?: boolean;
+}
+
+export interface DeviceLoginResult {
+  biometricsActivated: boolean;
+  biometricError?: BiometricFailure;
 }

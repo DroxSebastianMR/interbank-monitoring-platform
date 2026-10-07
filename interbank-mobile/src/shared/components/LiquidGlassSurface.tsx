@@ -10,6 +10,7 @@ interface LiquidGlassSurfaceProps extends PropsWithChildren {
   intensity?: number;
   tone?: "adaptive" | "green" | "blue" | "neutral";
   style?: StyleProp<ViewStyle>;
+  opaque?: boolean;
 }
 
 const GLASS_TONES = {
@@ -37,17 +38,26 @@ export function LiquidGlassSurface({
   intensity = 30,
   tone = "adaptive",
   style,
+  opaque = false,
 }: LiquidGlassSurfaceProps) {
   const palette = GLASS_TONES[tone];
 
   return (
     <View className={`overflow-hidden ${className ?? ""}`} style={style}>
-      <BlurView
-        intensity={intensity}
-        tint="light"
-        blurMethod="dimezisBlurView"
-        style={StyleSheet.absoluteFill}
-      />
+      {opaque ? (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: "#E7F0EB" }]}
+        />
+      ) : (
+        <BlurView
+          pointerEvents="none"
+          intensity={intensity}
+          tint="light"
+          blurMethod="dimezisBlurView"
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       <View
         pointerEvents="none"
         style={[

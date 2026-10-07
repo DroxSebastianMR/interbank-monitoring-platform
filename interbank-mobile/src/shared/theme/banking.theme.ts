@@ -4,6 +4,7 @@ export const BANKING_COLORS = {
   greenDeep: "#006B32",
   ink: "#0B2A1A",
   blue: "#0C55D9",
+  blueAction: "#2563EB",
   mist: "#EEF8F1",
   surface: "#F7FAF8",
   surfaceElevated: "#FFFFFF",
