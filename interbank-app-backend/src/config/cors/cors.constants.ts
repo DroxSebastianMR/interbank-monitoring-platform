@@ -7,6 +7,8 @@ export const CORS_ALLOWED_HEADERS = [
   'Authorization',
   'Content-Type',
   'X-Request-Id',
+  'X-Platform',
+  'X-App-Version',
   'Idempotency-Key',
 ];
 

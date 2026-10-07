@@ -20,7 +20,8 @@
     "verify:home": "node scripts/verify-home-flow.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:seed:verify": "node --env-file=.env scripts/verify-demo-seed.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

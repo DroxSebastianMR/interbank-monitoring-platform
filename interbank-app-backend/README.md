@@ -31,6 +31,8 @@ El modelo de cuentas, catálogos, tarjetas y CCI simulado está en
 [`docs/ACCOUNTS.md`](docs/ACCOUNTS.md).
 El flujo de transferencias, búsqueda de destinatarios e idempotencia está en
 [`docs/TRANSFERS.md`](docs/TRANSFERS.md).
+El recorrido reproducible con datos demo para probar cada endpoint en Swagger está en
+[`docs/SWAGGER_TEST_FLOW.md`](docs/SWAGGER_TEST_FLOW.md).
 
 ## Configuración y ejecución
 
@@ -38,7 +40,10 @@ El flujo de transferencias, búsqueda de destinatarios e idempotencia está en
 2. `corepack enable`
 3. `pnpm install`
 4. `pnpm prisma:generate`
-5. `pnpm start:dev`
+5. `pnpm prisma:migrate`
+6. `pnpm prisma:seed`
+7. `pnpm prisma:seed:verify`
+8. `pnpm start:dev`
 
 Al terminar el arranque se imprimen las direcciones de API, Swagger, OpenAPI y
 los orígenes CORS habilitados. Build de producción: `pnpm build`. Ejecución del
