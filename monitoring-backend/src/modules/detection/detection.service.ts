@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DetectionResult, MetricInput } from './interfaces/metric-input';
+import type {
+  DetectionResult,
+  MetricInput,
+} from '@/modules/detection/interfaces/metric-input';
 @Injectable()
 export class DetectionService {
   constructor(private readonly config: ConfigService) {}

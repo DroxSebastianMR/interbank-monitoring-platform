@@ -13,6 +13,129 @@ enum ServiceStatus {
   DEGRADED
   UNAVAILABLE
   RECOVERING
+
+  @@schema("monitoring")
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  DISABLED
+
+  @@schema("monitoring")
+}
+
+model Employee {
+  id                  String         @id @default(uuid()) @db.Uuid
+  employeeCode        String         @unique @map("employee_code") @db.VarChar(30)
+  corporateEmail      String         @unique @map("corporate_email") @db.VarChar(254)
+  passwordHash        String         @map("password_hash") @db.VarChar(255)
+  firstName           String         @map("first_name") @db.VarChar(80)
+  lastName            String         @map("last_name") @db.VarChar(120)
+  jobTitle            String?        @map("job_title") @db.VarChar(120)
+  department          String?        @db.VarChar(120)
+  status              EmployeeStatus @default(ACTIVE)
+  failedLoginAttempts Int            @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?      @map("locked_until")
+  lastLoginAt         DateTime?      @map("last_login_at")
+  passwordChangedAt   DateTime       @default(now()) @map("password_changed_at")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+  roles               EmployeeRole[]
+  sessions            AuthSession[]
+  auditLogs           AuditLog[]
+
+  @@index([status])
+  @@map("employees")
+  @@schema("monitoring")
+}
+
+model Role {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique @db.VarChar(60)
+  name        String           @db.VarChar(100)
+  description String?          @db.VarChar(255)
+  isSystem    Boolean          @default(true) @map("is_system")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  employees   EmployeeRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+  @@schema("monitoring")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique @db.VarChar(100)
+  resource    String           @db.VarChar(60)
+  action      String           @db.VarChar(40)
+  description String?          @db.VarChar(255)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  roles       RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+  @@schema("monitoring")
+}
+
+model EmployeeRole {
+  employeeId String   @map("employee_id") @db.Uuid
+  roleId     String   @map("role_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([employeeId, roleId])
+  @@index([roleId])
+  @@map("employee_roles")
+  @@schema("monitoring")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+  @@schema("monitoring")
+}
+
+model AuthSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  employeeId       String    @map("employee_id") @db.Uuid
+  refreshTokenHash String    @unique @map("refresh_token_hash") @db.Char(64)
+  ipAddress        String?   @map("ip_address") @db.VarChar(64)
+  userAgent        String?   @map("user_agent") @db.VarChar(500)
+  expiresAt        DateTime  @map("expires_at")
+  lastUsedAt       DateTime  @default(now()) @map("last_used_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  employee         Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, revokedAt])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+  @@schema("monitoring")
+}
+
+model AuditLog {
+  id         String    @id @default(uuid()) @db.Uuid
+  actorId    String?   @map("actor_id") @db.Uuid
+  action     String    @db.VarChar(100)
+  resource   String    @db.VarChar(80)
+  resourceId String?   @map("resource_id") @db.VarChar(100)
+  outcome    String    @db.VarChar(20)
+  ipAddress  String?   @map("ip_address") @db.VarChar(64)
+  metadata   Json?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  actor      Employee? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([resource, createdAt])
+  @@map("audit_logs")
   @@schema("monitoring")
 }
 
@@ -25,6 +148,7 @@ model MonitoredService {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   checks        HealthCheck[]
+
   @@schema("monitoring")
 }
 
@@ -35,6 +159,7 @@ model HealthCheck {
   latencyMs Int
   checkedAt DateTime         @default(now())
   service   MonitoredService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
   @@index([serviceId, checkedAt])
   @@schema("monitoring")
 }
@@ -46,5 +171,6 @@ model Incident {
   status     String
   openedAt   DateTime  @default(now())
   resolvedAt DateTime?
+
   @@schema("monitoring")
 }

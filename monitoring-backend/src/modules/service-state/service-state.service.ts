@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { DetectionResult } from '../detection/interfaces/metric-input';
-import { ServiceStatus } from './interfaces/service-state';
+import type { DetectionResult } from '@/modules/detection/interfaces/metric-input';
+import { ServiceStatus } from '@/modules/service-state/interfaces/service-state';
 @Injectable()
 export class ServiceStateService {
   decide(current: ServiceStatus, detection: DetectionResult, reachable: boolean) {

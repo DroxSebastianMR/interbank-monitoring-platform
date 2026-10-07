@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ServiceSnapshot, ServiceStatus } from '../service-state/interfaces/service-state';
+import {
+  ServiceStatus,
+  type ServiceSnapshot,
+} from '@/modules/service-state/interfaces/service-state';
 @Injectable()
 export class MonitoredServicesService {
   private readonly services: ServiceSnapshot[] = [

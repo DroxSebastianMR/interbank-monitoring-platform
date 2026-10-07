@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { PredictDto } from './dto/predict.dto';
+import type { PredictDto } from '@/modules/ai-integration/dto/predict.dto';
 export interface AiResult {
   anomaly: boolean;
   anomalyScore: number;

@@ -2,9 +2,9 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { DetectionService } from '../detection/detection.service';
-import { MonitoredServicesService } from '../monitored-services/monitored-services.service';
-import { ServiceStateService } from '../service-state/service-state.service';
+import { DetectionService } from '@/modules/detection/detection.service';
+import { MonitoredServicesService } from '@/modules/monitored-services/monitored-services.service';
+import { ServiceStateService } from '@/modules/service-state/service-state.service';
 @Injectable()
 export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MonitoringService.name);
