@@ -18,6 +18,7 @@ export interface HomeQuickAction {
   code: string;
   label: string;
   path: string;
+  badge?: string;
 }
 
 export interface HomeTransaction {

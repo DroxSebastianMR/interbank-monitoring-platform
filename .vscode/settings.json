@@ -6,6 +6,10 @@
       "changeProcessCWD": true
     },
     {
+      "directory": "./interbank-mobile",
+      "changeProcessCWD": true
+    },
+    {
       "directory": "./monitoring-backend",
       "changeProcessCWD": true
     },

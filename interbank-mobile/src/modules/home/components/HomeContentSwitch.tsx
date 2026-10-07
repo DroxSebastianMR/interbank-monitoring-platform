@@ -1,7 +1,10 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 
-import type { HomeAccount } from "@/src/infrastructure/api/home/services/home.types";
+import type {
+  HomeAccount,
+  HomeQuickAction,
+} from "@/src/infrastructure/api/home/services/home.types";
 import { BankingQuickActions } from "@/src/modules/home/components/BankingQuickActions";
 import { HOME_COLORS } from "@/src/modules/home/theme/home.theme";
 import { LiquidGlassSurface } from "@/src/shared/components/LiquidGlassSurface";
@@ -10,6 +13,7 @@ type HomeSection = "operations" | "products";
 
 interface HomeContentSwitchProps {
   accounts: HomeAccount[];
+  quickActions?: HomeQuickAction[];
   selected: HomeSection;
   onChange: (section: HomeSection) => void;
   onAction?: (code: string) => void;
@@ -17,6 +21,7 @@ interface HomeContentSwitchProps {
 
 export function HomeContentSwitch({
   accounts,
+  quickActions,
   selected,
   onChange,
   onAction,
@@ -41,7 +46,7 @@ export function HomeContentSwitch({
       </LiquidGlassSurface>
 
       {selected === "operations" ? (
-        <BankingQuickActions onAction={onAction} />
+        <BankingQuickActions actions={quickActions} onAction={onAction} />
       ) : (
         <View className="px-5 pt-4">
           {accounts.map((account) => (

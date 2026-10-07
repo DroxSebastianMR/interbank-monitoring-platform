@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { HOME_RECENT_TRANSACTION_LIMIT } from '@/modules/home/constants/home.constants';
+import {
+  HOME_NEW_CARD_WINDOW_DAYS,
+  HOME_RECENT_TRANSACTION_LIMIT,
+} from '@/modules/home/constants/home.constants';
 import type { HomeSnapshot } from '@/modules/home/types/home.types';
 
 @Injectable()
@@ -9,7 +12,10 @@ export class HomeRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async getSnapshot(userId: string): Promise<HomeSnapshot> {
-    const [user, accounts, recentTransactions] = await Promise.all([
+    const newCardThreshold = new Date();
+    newCardThreshold.setDate(newCardThreshold.getDate() - HOME_NEW_CARD_WINDOW_DAYS);
+
+    const [user, accounts, recentTransactions, newCard] = await Promise.all([
       this.prisma.user.findUnique({ where: { id: userId }, select: { firstName: true } }),
       this.prisma.account.findMany({
         where: { userId },
@@ -40,6 +46,13 @@ export class HomeRepository {
           account: { select: { displayName: true } },
         },
       }),
+      this.prisma.card.findFirst({
+        where: {
+          userId,
+          createdAt: { gte: newCardThreshold },
+        },
+        select: { id: true },
+      }),
     ]);
 
     return {
@@ -48,6 +61,7 @@ export class HomeRepository {
         ...account,
         balance: account.balance.toFixed(2),
       })),
+      hasNewCard: newCard !== null,
       recentTransactions: recentTransactions.map(({ account, amount, ...transaction }) => ({
         ...transaction,
         accountName: account.displayName,

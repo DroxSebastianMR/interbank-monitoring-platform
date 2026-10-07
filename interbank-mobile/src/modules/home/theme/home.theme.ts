@@ -6,4 +6,5 @@ export const HOME_LAYOUT = {
   horizontalPadding: 20,
   cardGap: 12,
   cardWidthOffset: 40,
+  maxContentWidth: 390,
 } as const;

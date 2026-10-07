@@ -20,6 +20,7 @@ export class HomeQuickActionDto {
   @ApiProperty({ example: 'TRANSFER' }) code!: string;
   @ApiProperty({ example: 'Transferir' }) label!: string;
   @ApiProperty({ example: '/transfers' }) path!: string;
+  @ApiPropertyOptional({ example: 'Nuevo' }) badge?: string;
 }
 
 export class HomeTransactionDto {

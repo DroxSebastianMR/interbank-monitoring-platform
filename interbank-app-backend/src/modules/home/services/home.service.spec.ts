@@ -26,6 +26,7 @@ describe('HomeService', () => {
             type: 'SAVINGS',
           },
         ],
+        hasNewCard: true,
         recentTransactions: [],
       }),
     };
@@ -48,9 +49,16 @@ describe('HomeService', () => {
     ]);
     expect(result.accounts[0]?.maskedAccountNumber).toBe('*********0001');
     expect(result.quickActions.map(({ path }) => path)).toEqual([
+      '/plinear',
       '/transfers',
       '/service-payments',
+      '/mobile-top-up',
+      '/exchange',
+      '/accounts/cards',
+      '/accounts/products',
+      '/operations',
     ]);
+    expect(result.quickActions.find(({ code }) => code === 'CARD')?.badge).toBe('Nuevo');
     expect(cache.set).toHaveBeenCalled();
   });
 });

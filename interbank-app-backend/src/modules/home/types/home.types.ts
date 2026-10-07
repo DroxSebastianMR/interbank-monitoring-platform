@@ -25,5 +25,6 @@ export interface HomeTransactionSnapshot {
 export interface HomeSnapshot {
   firstName: string | null;
   accounts: HomeAccountSnapshot[];
+  hasNewCard: boolean;
   recentTransactions: HomeTransactionSnapshot[];
 }

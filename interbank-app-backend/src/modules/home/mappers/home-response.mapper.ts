@@ -11,7 +11,10 @@ export function mapHomeResponse(snapshot: HomeSnapshot): HomeResponseDto {
     ...(snapshot.firstName ? { firstName: snapshot.firstName } : {}),
     balances: buildBalanceSummaries(snapshot.accounts),
     accounts: snapshot.accounts.map(mapAccount),
-    quickActions: HOME_QUICK_ACTIONS.map((action) => ({ ...action })),
+    quickActions: HOME_QUICK_ACTIONS.map((action) => ({
+      ...action,
+      ...(action.code === 'CARD' && snapshot.hasNewCard ? { badge: 'Nuevo' } : {}),
+    })),
     recentTransactions: snapshot.recentTransactions.map((transaction) => ({
       ...transaction,
       occurredAt: transaction.occurredAt.toISOString(),

@@ -3,13 +3,12 @@ import { useNavigation } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Text,
-    useWindowDimensions,
-    View,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -20,10 +19,16 @@ import { HomeAmbientBackground } from "@/src/modules/home/components/HomeAmbient
 import { HomeContentSwitch } from "@/src/modules/home/components/HomeContentSwitch";
 import { HomeHeader } from "@/src/modules/home/components/HomeHeader";
 import { HomePrimaryActions } from "@/src/modules/home/components/HomePrimaryActions";
+import { HomePromotions } from "@/src/modules/home/components/HomePromotions";
+import { HomeScreenSkeleton } from "@/src/modules/home/components/HomeScreenSkeleton";
 import { RecentTransactions } from "@/src/modules/home/components/RecentTransactions";
+import {
+  HOME_PROMOTION_SHORTCUTS,
+  HOME_PROMOTIONS,
+} from "@/src/modules/home/data/home-promotions.data";
 import { useHomeSummary } from "@/src/modules/home/hooks/useHomeSummary";
-import { LiquidGlassSurface } from "@/src/shared/components/LiquidGlassSurface";
 import { ContentSectionSurface } from "@/src/shared/components/ContentSectionSurface";
+import { LiquidGlassSurface } from "@/src/shared/components/LiquidGlassSurface";
 
 type HomeSection = "operations" | "products";
 
@@ -71,11 +76,7 @@ export function HomeScreen() {
             <HomeHeader firstName={firstName} />
 
             {loading && !data ? (
-              <ActivityIndicator
-                className="mt-24"
-                color="#FFFFFF"
-                size="large"
-              />
+              <HomeScreenSkeleton />
             ) : error || !data ? (
               <LiquidGlassSurface className="mx-5 mt-8 rounded-3xl p-6">
                 <Text className="text-lg font-bold text-green-950">
@@ -107,9 +108,16 @@ export function HomeScreen() {
                 <ContentSectionSurface>
                   <HomeContentSwitch
                     accounts={data.accounts}
+                    quickActions={data.quickActions}
                     selected={section}
                     onChange={setSection}
                     onAction={handleAction}
+                  />
+                  <HomePromotions
+                    items={HOME_PROMOTIONS}
+                    onPromotionPress={() => navigateToTab("Profile")}
+                    onShortcutPress={() => navigateToTab("Profile")}
+                    shortcuts={HOME_PROMOTION_SHORTCUTS}
                   />
                   <RecentTransactions
                     items={data.recentTransactions.slice(0, 5)}
