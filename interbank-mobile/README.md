@@ -4,7 +4,7 @@ Aplicación móvil bancaria simulada construida con la base técnica validada de
 
 ## Stack compatible
 
-- Expo SDK 57 (`expo@57.0.26` instalado en el lockfile)
+- Expo SDK 57 (`expo@57.0.27` instalado en el lockfile)
 - React Native `0.86.3`
 - React `19.2.3`
 - TypeScript `6.0.3`
@@ -22,6 +22,12 @@ cd interbank-mobile
 Copy-Item .env.example .env
 npm ci
 npm run start
+```
+
+Si Node está disponible pero `npm` no está en el `PATH`, puedes iniciar Metro directamente:
+
+```powershell
+node node_modules/expo/bin/cli start
 ```
 
 Para Android Emulator, normalmente se usa:
@@ -59,3 +65,7 @@ src/
 ```
 
 Consulta [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para el detalle de responsabilidades y contratos, y [docs/EXPO_SDK_57_MIGRATION.md](docs/EXPO_SDK_57_MIGRATION.md) para las decisiones y comprobaciones de la actualización.
+
+El diseño de la primera entrada y el alcance de recuperación y registro están documentados en [docs/LOGIN_DESIGN.md](docs/LOGIN_DESIGN.md).
+
+El ingreso del dispositivo registrado, la activación biométrica y los requisitos de Face ID están documentados en [docs/DEVICE_LOGIN.md](docs/DEVICE_LOGIN.md).

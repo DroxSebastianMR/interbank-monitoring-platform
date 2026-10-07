@@ -2,6 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 import type { AuthUser } from "@/src/modules/auth/types/auth.types";
+import { biometricLoginService } from "@/src/infrastructure/device/biometric-login.service";
 
 const KEYS = {
   accessToken: "interbank.access-token",
@@ -19,7 +20,8 @@ async function setItem(key: string, value: string): Promise<void> {
 }
 
 async function getItem(key: string): Promise<string | null> {
-  if (Platform.OS === "web") return globalThis.localStorage?.getItem(key) ?? null;
+  if (Platform.OS === "web")
+    return globalThis.localStorage?.getItem(key) ?? null;
   return SecureStore.getItemAsync(key);
 }
 
@@ -73,6 +75,7 @@ export const authStorage = {
       deleteItem(KEYS.accessToken),
       deleteItem(KEYS.sessionToken),
       deleteItem(KEYS.user),
+      biometricLoginService.clear(),
     ]);
   },
 

@@ -38,7 +38,18 @@
           }
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Permite que Interbank use Face ID para proteger tu acceso."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Permite que Interbank use Face ID para proteger tu acceso."
+        }
+      ],
       "expo-font",
       "expo-image",
       "expo-web-browser",

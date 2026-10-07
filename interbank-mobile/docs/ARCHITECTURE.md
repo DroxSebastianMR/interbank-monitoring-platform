@@ -11,7 +11,9 @@ El primer ingreso recopila DNI, correo y contraseña. El dispositivo genera un i
 El contrato corresponde a:
 
 - `POST /auth/login`
-- `POST /auth/device-login` para la autenticación posterior que se implementará en la siguiente etapa visual
+- `POST /auth/device-login` para el ingreso del dispositivo registrado con contraseña o una credencial desbloqueada mediante biometría.
+
+La pantalla de dispositivo registrado mantiene componentes, hooks, casos de uso y servicios nativos separados. La activación biométrica es voluntaria después de validar la contraseña con la API. Secure Store protege la credencial y la vincula al usuario y dispositivo; cada ingreso vuelve a ser autorizado por el backend. Consulta [DEVICE_LOGIN.md](DEVICE_LOGIN.md) para el alcance y los requisitos nativos.
 
 ## Home bancario
 
