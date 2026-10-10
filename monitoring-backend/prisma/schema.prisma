@@ -165,12 +165,29 @@ model HealthCheck {
 }
 
 model Incident {
-  id         String    @id @default(uuid()) @db.Uuid
-  serviceId  String    @db.Uuid
-  title      String
-  status     String
-  openedAt   DateTime  @default(now())
-  resolvedAt DateTime?
+  id             String    @id @default(uuid()) @db.Uuid
+  serviceKey     String    @db.VarChar(100)
+  title          String
+  status         String    @db.VarChar(20)
+  severity       String    @default("MEDIUM") @db.VarChar(20)
+  evidence       Json?
+  openedAt       DateTime  @default(now())
+  lastObservedAt DateTime  @default(now())
+  resolvedAt     DateTime?
+  alerts         Alert[]
 
+  @@index([serviceKey, openedAt])
+  @@schema("monitoring")
+}
+
+model Alert {
+  id         String   @id @default(uuid()) @db.Uuid
+  incidentId String   @db.Uuid
+  kind       String   @db.VarChar(30)
+  message    String
+  createdAt  DateTime @default(now())
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
   @@schema("monitoring")
 }

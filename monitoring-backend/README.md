@@ -8,6 +8,8 @@ NestJS 11, Prisma/PostgreSQL, Redis, BullMQ preparado, Axios, Swagger y Jest. Co
 
 El monitor corre cada `MONITOR_INTERVAL_MS` (10 s por defecto), con timeout `MONITOR_TIMEOUT_MS` (3 s). El estado reciente vive en memoria en esta fase; el esquema Prisma deja preparada la persistencia agregada en el schema PostgreSQL `monitoring`.
 
+La rama de IA añade ventanas de 60 s, métricas de tráfico de Prometheus, análisis Python con fallback a reglas, incidentes y alertas persistidos. Aplicar las migraciones Prisma antes de ejecutar la API. El asistente protegido por `analytics.read` se consulta en `POST /assistant/ask`. Ver `../docs/MONITORING_AI.md`.
+
 ## Calidad de código
 
 - `pnpm format`: aplica Prettier a todo el repositorio.

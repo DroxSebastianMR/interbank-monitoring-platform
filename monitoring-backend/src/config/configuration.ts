@@ -5,6 +5,7 @@ export default () => ({
     port: Number(process.env.REDIS_PORT ?? 6379),
   },
   aiServiceUrl: process.env.AI_SERVICE_URL ?? 'http://localhost:8000',
+  prometheusUrl: process.env.PROMETHEUS_URL ?? 'http://localhost:9090',
   appBackendUrl: process.env.APP_BACKEND_URL ?? 'http://localhost:8080',
   corsOrigins: process.env.CORS_ORIGINS,
   auth: {

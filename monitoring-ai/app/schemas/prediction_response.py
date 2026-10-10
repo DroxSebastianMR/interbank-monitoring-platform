@@ -1,5 +1,8 @@
 from typing import Literal
+
 from pydantic import BaseModel, Field
+
+
 class PredictionResponse(BaseModel):
     anomaly: bool
     anomalyScore: float = Field(ge=0, le=1)

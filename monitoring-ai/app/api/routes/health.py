@@ -1,6 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import APIRouter
+
 router = APIRouter(tags=["health"])
+
+
 @router.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "monitoring-ai", "timestamp": datetime.now(timezone.utc).isoformat()}
+    return {"status": "ok", "service": "monitoring-ai", "timestamp": datetime.now(UTC).isoformat()}

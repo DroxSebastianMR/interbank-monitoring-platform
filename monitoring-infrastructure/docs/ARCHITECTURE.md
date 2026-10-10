@@ -43,7 +43,7 @@ El Monitoring Backend no está detrás del NGINX del sistema bancario. Si NGINX 
 | `monitoring-dashboard` | Vista operacional del equipo | React, Vite, TanStack Query |
 | `monitoring-infrastructure` | Orquestación y observabilidad técnica | Docker Compose, NGINX, Redis, Prometheus, Grafana, k6 |
 
-Cada carpeta posee su propio `.git`. No existe un monorepo ni un repositorio Git padre.
+Las seis carpetas viven actualmente en un monorepo Git. Cada servicio conserva sus propias dependencias y límites de despliegue; la raíz coordina contratos, documentación y cambios transversales.
 
 ## 4. Flujo vertical implementado
 
