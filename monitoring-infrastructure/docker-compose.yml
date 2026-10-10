@@ -77,8 +77,12 @@ services:
     restart: unless-stopped
     environment:
       MODEL_MODE: baseline
+      ASSISTANT_PROVIDER: ${ASSISTANT_PROVIDER:-none}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    ports: ["8000:8000"]
     networks: [monitoring-network]
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
@@ -99,7 +103,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       AI_SERVICE_URL: http://monitoring-ai:8000
-      APP_BACKEND_URL: http://app-backend-1:3000
+      PROMETHEUS_URL: http://prometheus:9090
+      APP_BACKEND_URL: http://nginx
       MONITOR_INTERVAL_MS: ${MONITOR_INTERVAL_MS:-10000}
       MONITOR_TIMEOUT_MS: ${MONITOR_TIMEOUT_MS:-3000}
       CORS_ORIGINS: ${MONITORING_CORS_ORIGINS:-http://localhost:5173}
