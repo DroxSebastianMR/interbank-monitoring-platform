@@ -19,6 +19,7 @@ class Env {
   @IsString() REDIS_HOST!: string;
   @Type(() => Number) @IsNumber() @Min(1) REDIS_PORT!: number;
   @IsUrl({ require_tld: false }) AI_SERVICE_URL!: string;
+  @IsUrl({ require_tld: false }) @IsOptional() PROMETHEUS_URL?: string;
   @IsUrl({ require_tld: false }) APP_BACKEND_URL!: string;
   @IsString() @IsOptional() CORS_ORIGINS?: string;
 }

@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { AppModule } from '@/app.module';
 import { GlobalExceptionFilter } from '@/common/filters/global-exception.filter';
 import { CompactConsoleLogger } from '@/common/logger/compact-console.logger';
+import { observeHttpRequest } from '@/modules/metrics/http-metrics';
 import {
   buildCorsOptions,
   createValidationPipe,
@@ -24,6 +25,7 @@ async function bootstrap() {
   }
 
   app.use(helmet());
+  app.use(observeHttpRequest);
   app.enableCors(buildCorsOptions(appConfig.corsOrigins));
   app.useGlobalPipes(createValidationPipe());
   app.useGlobalFilters(new GlobalExceptionFilter());

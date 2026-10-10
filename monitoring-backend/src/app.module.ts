@@ -19,6 +19,7 @@ import { AuthModule } from '@/modules/auth/auth.module';
 import { AccessControlModule } from '@/modules/access-control/access-control.module';
 import { AnalyticsModule } from '@/modules/analytics/analytics.module';
 import { AuditModule } from '@/modules/audit/audit.module';
+import { AssistantModule } from '@/modules/assistant/assistant.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { AuditModule } from '@/modules/audit/audit.module';
     NotificationsModule,
     AnalyticsModule,
     AuditModule,
+    AssistantModule,
     HealthModule,
   ],
 })
