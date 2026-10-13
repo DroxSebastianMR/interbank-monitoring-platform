@@ -1,4 +1,6 @@
 services:
+  monitoring-ai:
+    ports: ["8000:8000"]
   redis:
     ports: ["6379:6379"]
   app-backend-1:

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DetectionResult, MetricInput } from './interfaces/metric-input';
+import type { DetectionResult, MetricInput } from '@/modules/detection/interfaces/metric-input';
 @Injectable()
 export class DetectionService {
   constructor(private readonly config: ConfigService) {}
@@ -8,6 +8,7 @@ export class DetectionService {
     const reasons: string[] = [];
     if (m.healthCheckFailures >= this.config.get<number>('rules.maxHealthFailures', 2))
       reasons.push('multiple health checks failed');
+    else if (m.healthCheckFailures > 0) reasons.push('health check failed');
     if (m.latency > this.config.get<number>('rules.latencyThresholdMs', 1000))
       reasons.push('latency threshold exceeded');
     if (m.errorRate >= 0.1) reasons.push('high error rate');
@@ -15,7 +16,11 @@ export class DetectionService {
     if (m.aiAnomalyScore >= 0.8) reasons.push('AI anomaly risk');
     return {
       severity:
-        reasons.length >= 2 || m.availability === 0 ? 'HIGH' : reasons.length ? 'MEDIUM' : 'NONE',
+        m.healthCheckFailures >= this.config.get<number>('rules.maxHealthFailures', 2)
+          ? 'HIGH'
+          : reasons.length
+            ? 'MEDIUM'
+            : 'NONE',
       reasons,
     };
   }

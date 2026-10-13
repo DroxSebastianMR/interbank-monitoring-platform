@@ -1,6 +1,6 @@
 import { Controller, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { MonitoringService } from './monitoring.service';
+import { MonitoringService } from '@/modules/monitoring/monitoring.service';
 @ApiTags('monitoring')
 @Controller('monitoring')
 export class MonitoringController {

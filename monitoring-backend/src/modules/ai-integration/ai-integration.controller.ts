@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { AiIntegrationService } from './ai-integration.service';
-import { PredictDto } from './dto/predict.dto';
+import { AiIntegrationService } from '@/modules/ai-integration/ai-integration.service';
+import { PredictDto } from '@/modules/ai-integration/dto/predict.dto';
 @ApiTags('ai-integration')
 @Controller('ai')
 export class AiIntegrationController {

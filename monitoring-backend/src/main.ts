@@ -1,11 +1,12 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
-import { AppModule } from './app.module';
-import { CompactConsoleLogger } from './common/logger/compact-console.logger';
-import { buildCorsOptions, parseCorsOrigins } from './config/cors.config';
-import { setupSwagger } from './config/swagger.config';
-import { createValidationPipe } from './config/validation.config';
+import { AppModule } from '@/app.module';
+import { GlobalExceptionFilter } from '@/common/filters/global-exception.filter';
+import { CompactConsoleLogger } from '@/common/logger/compact-console.logger';
+import { buildCorsOptions, parseCorsOrigins } from '@/config/cors.config';
+import { setupSwagger } from '@/config/swagger.config';
+import { createValidationPipe } from '@/config/validation.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -18,6 +19,7 @@ async function bootstrap() {
   app.use(helmet());
   app.enableCors(buildCorsOptions(corsOrigins));
   app.useGlobalPipes(createValidationPipe());
+  app.useGlobalFilters(new GlobalExceptionFilter());
   setupSwagger(app, port);
 
   await app.listen(port, '0.0.0.0');

@@ -1,19 +1,40 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
+import { ThrottlerModule } from '@nestjs/throttler';
+
+import type { AuthConfig } from '@/config/auth.config';
+import { AuthController } from '@/modules/auth/controllers/auth.controller';
+import { JwtAccessGuard } from '@/modules/auth/guards/jwt-access.guard';
+import { PermissionsGuard } from '@/modules/auth/guards/permissions.guard';
+import { AuthRepository } from '@/modules/auth/repositories/auth.repository';
+import { AuthService } from '@/modules/auth/services/auth.service';
+import { PasswordService } from '@/modules/auth/services/password.service';
+import { TokenService } from '@/modules/auth/services/token.service';
+
 @Module({
   imports: [
     JwtModule.registerAsync({
       inject: [ConfigService],
-      useFactory: (c: ConfigService) => ({
-        secret: c.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '1h' },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const config = configService.getOrThrow<AuthConfig>('auth');
+        return {
+          secret: config.jwtSecret,
+          signOptions: { expiresIn: config.accessTokenTtlSeconds },
+        };
+      },
     }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [
+    AuthService,
+    AuthRepository,
+    PasswordService,
+    TokenService,
+    JwtAccessGuard,
+    PermissionsGuard,
+  ],
+  exports: [AuthRepository, JwtAccessGuard, PermissionsGuard],
 })
 export class AuthModule {}

@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { DetectionService } from './detection.service';
+import { DetectionService } from '@/modules/detection/detection.service';
 describe('DetectionService', () => {
   it('flags failed health checks', () => {
     const service = new DetectionService(

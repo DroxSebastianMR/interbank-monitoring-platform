@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { validate } from './env.validation';
+import { validate } from '@/config/env.validation';
 describe('environment validation', () => {
   it('rejects missing critical values', () => {
     expect(() => validate({})).toThrow('Invalid environment');

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && tsc-alias",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "lint": "eslint \"{src,test,prisma}/**/*.ts\"",
@@ -25,6 +25,7 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.0.0",
+    "@nestjs/throttler": "^6.7.1",
     "@prisma/client": "^6.7.0",
     "axios": "^1.8.4",
     "bullmq": "^5.48.1",
@@ -49,6 +50,8 @@
     "prisma": "^6.7.0",
     "supertest": "^7.1.0",
     "ts-jest": "^29.2.5",
+    "tsc-alias": "^1.9.7",
+    "tsconfig-paths": "^4.2.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.31.0"
@@ -64,6 +67,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1"
+    }
   }
 }

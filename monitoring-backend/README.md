@@ -4,9 +4,11 @@ Núcleo de la plataforma: observa servicios, analiza métricas, decide estados y
 
 ## Stack y ejecución
 
-NestJS 11, Prisma/PostgreSQL, Redis, BullMQ preparado, Axios, Swagger y Jest. Copiar `.env.example` a `.env`, completar `DATABASE_URL`/`JWT_SECRET`, ejecutar `corepack enable`, `pnpm install`, `pnpm prisma:generate` y `pnpm start:dev`. Build: `pnpm build`. Tests: `pnpm test`. Docker: `docker build -t monitoring-backend .`.
+NestJS 11, Prisma/PostgreSQL, Redis, BullMQ preparado, Axios, Swagger y Jest. Copiar `.env.example` a `.env`, completar `DATABASE_URL`/`JWT_SECRET`, ejecutar `corepack enable`, `pnpm install`, `pnpm prisma:generate`, `pnpm prisma:migrate`, `pnpm prisma:seed` y `pnpm start:dev`. Build: `pnpm build`. Tests: `pnpm test`. Docker: `docker build -t monitoring-backend .`.
 
 El monitor corre cada `MONITOR_INTERVAL_MS` (10 s por defecto), con timeout `MONITOR_TIMEOUT_MS` (3 s). El estado reciente vive en memoria en esta fase; el esquema Prisma deja preparada la persistencia agregada en el schema PostgreSQL `monitoring`.
+
+La rama de IA añade ventanas de 60 s, métricas de tráfico de Prometheus, análisis Python con fallback a reglas, incidentes y alertas persistidos. Aplicar las migraciones Prisma antes de ejecutar la API. El asistente protegido por `analytics.read` se consulta en `POST /assistant/ask`. Ver `../docs/MONITORING_AI.md`.
 
 ## Calidad de código
 
@@ -30,6 +32,9 @@ La variante compacta solo reduce el relleno previo a `LOG`.
 
 ## API
 
+- `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`
+- `GET /access-control/roles`, `GET /access-control/permissions`
+- `PUT /access-control/employees/:employeeId/roles`
 - `GET /health`, `GET /metrics`
 - `GET /monitored-services`
 - `POST /monitoring/run`, `POST /monitoring/:id/check`
@@ -38,3 +43,9 @@ La variante compacta solo reduce el relleno previo a `LOG`.
 - Swagger: `/api/docs`
 
 Consume únicamente el App Backend/NGINX, Redis, PostgreSQL y `monitoring-ai`; el dashboard depende de esta API.
+
+## Acceso interno
+
+La autenticación pertenece al personal del centro de monitoreo, no a clientes de la app móvil. Los roles `ADMINISTRATOR`, `IT_ENGINEER`, `OPERATOR` y `AUDITOR` agrupan permisos granulares. El access token dura 15 minutos por defecto; el refresh token es opaco, se almacena únicamente como hash, rota en cada uso y queda revocado al cerrar sesión.
+
+El seed es idempotente. Los catálogos de roles y permisos se crean siempre. Para crear o actualizar el administrador inicial se deben definir `DASHBOARD_ADMIN_EMPLOYEE_CODE`, `DASHBOARD_ADMIN_EMAIL` y `DASHBOARD_ADMIN_PASSWORD` en el entorno local; esas credenciales nunca se versionan.

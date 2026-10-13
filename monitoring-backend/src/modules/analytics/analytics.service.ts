@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonitoredServicesService } from '../monitored-services/monitored-services.service';
+import { MonitoredServicesService } from '@/modules/monitored-services/monitored-services.service';
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly services: MonitoredServicesService) {}

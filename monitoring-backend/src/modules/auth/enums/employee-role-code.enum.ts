@@ -1,0 +1,6 @@
+export enum EmployeeRoleCode {
+  ADMINISTRATOR = 'ADMINISTRATOR',
+  IT_ENGINEER = 'IT_ENGINEER',
+  OPERATOR = 'OPERATOR',
+  AUDITOR = 'AUDITOR',
+}

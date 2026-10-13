@@ -1,4 +1,4 @@
-import { buildCorsOptions, parseCorsOrigins } from './cors.config';
+import { buildCorsOptions, parseCorsOrigins } from '@/config/cors.config';
 
 describe('CORS configuration', () => {
   it('parses and trims a comma-separated allowlist', () => {

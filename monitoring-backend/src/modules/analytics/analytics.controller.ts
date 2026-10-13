@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { AnalyticsService } from './analytics.service';
+import { AnalyticsService } from '@/modules/analytics/analytics.service';
 @Controller('analytics')
 export class AnalyticsController {
   constructor(private readonly service: AnalyticsService) {}
