@@ -44,7 +44,12 @@ export function LoginScaffold({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
+          style={styles.screen}
           contentContainerStyle={styles.content}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
+          contentInsetAdjustmentBehavior="never"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
@@ -120,7 +125,7 @@ const styles = StyleSheet.create({
   headingCompact: { paddingTop: 24 },
   titleCompact: { fontSize: 26, lineHeight: 32 },
   glassContent: { zIndex: 1 },
-  screen: { flex: 1, backgroundColor: "#F7FAF8" },
+  screen: { flex: 1, backgroundColor: BANKING_COLORS.green },
   content: { flexGrow: 1 },
   hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: "hidden" },
   header: {

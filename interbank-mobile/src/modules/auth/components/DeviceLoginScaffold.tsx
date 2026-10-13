@@ -48,7 +48,12 @@ export function DeviceLoginScaffold({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
+          style={styles.screen}
           contentContainerStyle={styles.scroll}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
+          contentInsetAdjustmentBehavior="never"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
@@ -125,7 +130,7 @@ export function DeviceLoginScaffold({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: BANKING_COLORS.surface },
+  screen: { flex: 1, backgroundColor: BANKING_COLORS.green },
   scroll: { flexGrow: 1 },
   hero: { paddingHorizontal: 20, paddingBottom: 50, overflow: "hidden" },
   header: {
