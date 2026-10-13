@@ -1,11 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EmployeeStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
-import type { AuthConfig } from '@/config/auth.config';
+import type { AuthConfig } from '@/config/authentication/auth-config.interface';
 import { DUMMY_PASSWORD_HASH } from '@/modules/auth/constants/auth.constants';
-import type { AuthResponseDto, LogoutResponseDto } from '@/modules/auth/dto/auth-response.dto';
+import type {
+  AuthResponseDto,
+  LogoutResponseDto,
+  SessionDto,
+} from '@/modules/auth/dto/auth-response.dto';
+import type { ChangePasswordDto } from '@/modules/auth/dto/change-password.dto';
 import type { LoginDto } from '@/modules/auth/dto/login.dto';
 import {
   AccountLockedException,
@@ -98,6 +103,46 @@ export class AuthService {
       roles: principal.roles,
       permissions: principal.permissions,
     };
+  }
+
+  sessions(principal: EmployeePrincipal): Promise<SessionDto[]> {
+    return this.repository.listActiveSessions(principal.id, principal.sessionId);
+  }
+
+  async revokeSession(
+    principal: EmployeePrincipal,
+    sessionId: string,
+    metadata: RequestMetadata,
+  ): Promise<LogoutResponseDto> {
+    await this.repository.revokeOwnSession(principal.id, sessionId, metadata);
+    return { loggedOut: true };
+  }
+
+  async logoutAll(
+    principal: EmployeePrincipal,
+    metadata: RequestMetadata,
+  ): Promise<LogoutResponseDto> {
+    await this.repository.revokeAllSessions(principal.id, metadata);
+    return { loggedOut: true };
+  }
+
+  async changePassword(
+    principal: EmployeePrincipal,
+    input: ChangePasswordDto,
+    metadata: RequestMetadata,
+  ): Promise<LogoutResponseDto> {
+    if (input.currentPassword === input.newPassword) {
+      throw new BadRequestException('La nueva contraseña debe ser diferente');
+    }
+    const currentHash = await this.repository.findPasswordHash(principal.id);
+    const matches = await this.passwordService.compare(
+      input.currentPassword,
+      currentHash ?? DUMMY_PASSWORD_HASH,
+    );
+    if (!matches || !currentHash) throw new InvalidCredentialsException();
+    const nextHash = await this.passwordService.hash(input.newPassword);
+    await this.repository.updatePasswordAndRevokeSessions(principal.id, nextHash, metadata);
+    return { loggedOut: true };
   }
 
   private async issueNewSession(

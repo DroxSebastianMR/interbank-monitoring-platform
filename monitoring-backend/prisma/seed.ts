@@ -1,4 +1,4 @@
-import { EmployeeStatus, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 import { hashPassword } from '@/common/security/password-hasher';
 import { EmployeeRoleCode } from '@/modules/auth/enums/employee-role-code.enum';
@@ -14,6 +14,12 @@ const permissions = [
   [PermissionCode.INCIDENTS_MANAGE, 'incidents', 'manage', 'Gestionar incidentes'],
   [PermissionCode.ALERTS_READ, 'alerts', 'read', 'Consultar alertas'],
   [
+    PermissionCode.NOTIFICATIONS_READ,
+    'notifications',
+    'read',
+    'Consultar notificaciones operativas',
+  ],
+  [
     PermissionCode.NOTIFICATIONS_MANAGE,
     'notifications',
     'manage',
@@ -28,6 +34,17 @@ const permissions = [
     'Administrar roles de empleados',
   ],
   [PermissionCode.AUDIT_READ, 'audit', 'read', 'Consultar trazabilidad y auditoría'],
+  [PermissionCode.EMPLOYEES_READ, 'employees', 'read', 'Consultar empleados del monitor'],
+  [PermissionCode.EMPLOYEES_MANAGE, 'employees', 'manage', 'Crear y desactivar empleados'],
+  [PermissionCode.SESSIONS_READ, 'sessions', 'read', 'Consultar sesiones propias'],
+  [PermissionCode.LOGS_READ, 'logs', 'read', 'Consultar registros técnicos'],
+  [
+    PermissionCode.TRANSACTIONS_READ,
+    'transactions',
+    'read',
+    'Consultar métricas agregadas de transacciones',
+  ],
+  [PermissionCode.SECURITY_READ, 'security', 'read', 'Consultar eventos de seguridad'],
 ] as const;
 
 const roleDefinitions: Record<
@@ -51,6 +68,9 @@ const roleDefinitions: Record<
       PermissionCode.ALERTS_READ,
       PermissionCode.ANALYTICS_READ,
       PermissionCode.AUDIT_READ,
+      PermissionCode.LOGS_READ,
+      PermissionCode.TRANSACTIONS_READ,
+      PermissionCode.SESSIONS_READ,
     ],
   },
   [EmployeeRoleCode.OPERATOR]: {
@@ -63,6 +83,9 @@ const roleDefinitions: Record<
       PermissionCode.INCIDENTS_MANAGE,
       PermissionCode.ALERTS_READ,
       PermissionCode.NOTIFICATIONS_MANAGE,
+      PermissionCode.NOTIFICATIONS_READ,
+      PermissionCode.TRANSACTIONS_READ,
+      PermissionCode.SESSIONS_READ,
     ],
   },
   [EmployeeRoleCode.AUDITOR]: {
@@ -76,6 +99,37 @@ const roleDefinitions: Record<
       PermissionCode.ANALYTICS_READ,
       PermissionCode.ACCESS_CONTROL_READ,
       PermissionCode.AUDIT_READ,
+      PermissionCode.LOGS_READ,
+      PermissionCode.TRANSACTIONS_READ,
+      PermissionCode.SESSIONS_READ,
+    ],
+  },
+  [EmployeeRoleCode.SECURITY_ANALYST]: {
+    name: 'Analista de seguridad',
+    description:
+      'Investiga eventos de seguridad y consulta evidencias sin administrar identidades.',
+    permissions: [
+      PermissionCode.DASHBOARD_READ,
+      PermissionCode.SERVICES_READ,
+      PermissionCode.INCIDENTS_READ,
+      PermissionCode.ALERTS_READ,
+      PermissionCode.AUDIT_READ,
+      PermissionCode.SECURITY_READ,
+      PermissionCode.LOGS_READ,
+      PermissionCode.SESSIONS_READ,
+    ],
+  },
+  [EmployeeRoleCode.VIEWER]: {
+    name: 'Consulta',
+    description: 'Visualización de estado y métricas sin permisos de modificación.',
+    permissions: [
+      PermissionCode.DASHBOARD_READ,
+      PermissionCode.SERVICES_READ,
+      PermissionCode.INCIDENTS_READ,
+      PermissionCode.ALERTS_READ,
+      PermissionCode.ANALYTICS_READ,
+      PermissionCode.TRANSACTIONS_READ,
+      PermissionCode.SESSIONS_READ,
     ],
   },
 };
@@ -126,18 +180,8 @@ async function seedAdministrator(): Promise<void> {
   const passwordHash = await hashPassword(password);
   const employee = await prisma.employee.upsert({
     where: { corporateEmail },
-    update: {
-      employeeCode,
-      passwordHash,
-      firstName: process.env.DASHBOARD_ADMIN_FIRST_NAME || 'Administrador',
-      lastName: process.env.DASHBOARD_ADMIN_LAST_NAME || 'Monitoreo',
-      jobTitle: 'Administrador de plataforma',
-      department: 'Tecnología de la Información',
-      status: EmployeeStatus.ACTIVE,
-      failedLoginAttempts: 0,
-      lockedUntil: null,
-      passwordChangedAt: new Date(),
-    },
+    // Re-running the seed must never reset a disabled account or overwrite its password.
+    update: {},
     create: {
       employeeCode,
       corporateEmail,

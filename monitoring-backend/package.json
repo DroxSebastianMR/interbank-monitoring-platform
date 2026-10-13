@@ -6,6 +6,7 @@
     "build": "nest build && tsc-alias",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
+    "start:docs": "nest build && tsc-alias && node dist/main.docs.js",
     "lint": "eslint \"{src,test,prisma}/**/*.ts\"",
     "lint:fix": "pnpm lint --fix",
     "format": "prettier --write .",
@@ -13,6 +14,7 @@
     "verify": "pnpm format:check && pnpm lint && pnpm test --runInBand && pnpm build",
     "test": "jest",
     "test:e2e": "jest --config test/jest-e2e.json",
+    "benchmark:endpoints": "node scripts/benchmark-endpoints.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts"

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
 
-import type { AuthConfig } from '@/config/auth.config';
+import type { AuthConfig } from '@/config/authentication/auth-config.interface';
 import type { AccessTokenPayload } from '@/modules/auth/types/auth.types';
 
 @Injectable()

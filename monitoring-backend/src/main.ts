@@ -4,37 +4,50 @@ import helmet from 'helmet';
 import { AppModule } from '@/app.module';
 import { GlobalExceptionFilter } from '@/common/filters/global-exception.filter';
 import { CompactConsoleLogger } from '@/common/logger/compact-console.logger';
-import { buildCorsOptions, parseCorsOrigins } from '@/config/cors.config';
-import { setupSwagger } from '@/config/swagger.config';
-import { createValidationPipe } from '@/config/validation.config';
+import {
+  buildCorsOptions,
+  createValidationPipe,
+  setupSwagger,
+  SWAGGER_PATHS,
+  type AppConfig,
+} from '@/config';
+import { docsOnlyMiddleware } from '@/config/swagger/docs-only.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: new CompactConsoleLogger(),
   });
-  const config = app.get(ConfigService);
-  const port = config.get<number>('port', 4000);
-  const corsOrigins = parseCorsOrigins(config.get<string>('corsOrigins'));
+  const configService = app.get(ConfigService);
+  const appConfig = configService.getOrThrow<AppConfig>('app');
 
   app.use(helmet());
-  app.enableCors(buildCorsOptions(corsOrigins));
+  app.enableCors(buildCorsOptions(appConfig.corsOrigins));
   app.useGlobalPipes(createValidationPipe());
   app.useGlobalFilters(new GlobalExceptionFilter());
-  setupSwagger(app, port);
+  if (appConfig.docsOnly) {
+    app.use(docsOnlyMiddleware);
+  }
+  const swagger = setupSwagger(app, appConfig);
 
-  await app.listen(port, '0.0.0.0');
+  await app.listen(appConfig.port, appConfig.docsOnly ? '127.0.0.1' : '0.0.0.0');
 
-  logServerInfo(port, corsOrigins);
+  logServerInfo(appConfig, swagger.operationCount);
 }
 
-function logServerInfo(port: number, corsOrigins: string[]): void {
+function logServerInfo(config: AppConfig, operationCount: number): void {
   console.log('');
-  console.log(`🚀 Servidor corriendo en puerto ${port}`);
-  console.log(`🌐 API Local: http://localhost:${port}`);
-  console.log(`📘 Swagger Local: http://localhost:${port}/api/docs`);
-  console.log(`📄 OpenAPI JSON: http://localhost:${port}/api/docs-json`);
-  console.log(`🔐 CORS habilitado para: ${corsOrigins.join(', ')}`);
+  console.log(
+    `🚀 ${config.docsOnly ? 'Swagger (solo documentación)' : 'Servidor'} en puerto ${config.port}`,
+  );
+  console.log(`🌐 API Local: http://localhost:${config.port}`);
+  console.log(`📘 Swagger Local: http://localhost:${config.port}/${SWAGGER_PATHS.ui}`);
+  console.log(`📄 OpenAPI JSON: http://localhost:${config.port}/${SWAGGER_PATHS.json}`);
+  console.log(`🔢 Endpoints documentados: ${operationCount}`);
+  console.log(`🔐 CORS habilitado para: ${config.corsOrigins.join(', ')}`);
   console.log('');
 }
 
-void bootstrap();
+void bootstrap().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

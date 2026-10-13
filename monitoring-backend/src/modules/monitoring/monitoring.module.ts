@@ -5,10 +5,10 @@ import { AiIntegrationModule } from '@/modules/ai-integration/ai-integration.mod
 import { IncidentsModule } from '@/modules/incidents/incidents.module';
 import { MonitoredServicesModule } from '@/modules/monitored-services/monitored-services.module';
 import { ServiceStateModule } from '@/modules/service-state/service-state.module';
-import { MonitoringController } from '@/modules/monitoring/monitoring.controller';
-import { MonitoringService } from '@/modules/monitoring/monitoring.service';
-import { MetricWindowService } from '@/modules/monitoring/metric-window.service';
-import { PrometheusMetricsService } from '@/modules/monitoring/prometheus-metrics.service';
+import { MonitoringController } from '@/modules/monitoring/controllers/monitoring.controller';
+import { MonitoringService } from '@/modules/monitoring/services/monitoring.service';
+import { MetricWindowService } from '@/modules/monitoring/services/metric-window.service';
+import { PrometheusMetricsService } from '@/modules/monitoring/services/prometheus-metrics.service';
 @Module({
   imports: [
     HttpModule,

@@ -1,13 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ArrayMaxSize, ArrayMinSize, ArrayUnique, IsEnum } from 'class-validator';
-
-import { EmployeeRoleCode } from '@/modules/auth/enums/employee-role-code.enum';
+import { ArrayMaxSize, ArrayMinSize, ArrayUnique, IsString, Matches } from 'class-validator';
 
 export class AssignEmployeeRolesDto {
-  @ApiProperty({ enum: EmployeeRoleCode, isArray: true, example: ['IT_ENGINEER'] })
+  @ApiProperty({ type: [String], example: ['IT_ENGINEER'] })
   @ArrayMinSize(1)
-  @ArrayMaxSize(4)
+  @ArrayMaxSize(8)
   @ArrayUnique()
-  @IsEnum(EmployeeRoleCode, { each: true })
-  roleCodes!: EmployeeRoleCode[];
+  @IsString({ each: true })
+  @Matches(/^[A-Z][A-Z0-9_]{2,59}$/, { each: true })
+  roleCodes!: string[];
 }
