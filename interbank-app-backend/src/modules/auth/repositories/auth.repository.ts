@@ -23,6 +23,13 @@ export class AuthRepository {
     });
   }
 
+  findActiveById(id: string): Promise<AuthenticatedUser | null> {
+    return this.prisma.user.findFirst({
+      where: { id, status: UserStatus.ACTIVE },
+      select: AUTH_USER_SELECT,
+    });
+  }
+
   async recordSuccessfulLogin(userId: string): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },

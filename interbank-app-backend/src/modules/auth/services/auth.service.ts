@@ -3,6 +3,12 @@ import { Injectable } from '@nestjs/common';
 import type { AuthResponseDto } from '@/modules/auth/dto/auth-response.dto';
 import type { DeviceLoginDto } from '@/modules/auth/dto/device-login.dto';
 import type { FirstLoginDto } from '@/modules/auth/dto/first-login.dto';
+import type {
+  BiometricCredentialDto,
+  BiometricEnrollmentDto,
+  BiometricLoginDto,
+} from '@/modules/auth/dto/biometric-credential.dto';
+import { BiometricLoginService } from '@/modules/auth/services/biometric-login.service';
 import { LoginService } from '@/modules/auth/services/login.service';
 import { SimulationService } from '@/modules/simulation/services/simulation.service';
 
@@ -11,6 +17,7 @@ export class AuthService {
   constructor(
     private readonly simulation: SimulationService,
     private readonly loginService: LoginService,
+    private readonly biometricLoginService: BiometricLoginService,
   ) {}
 
   async health(): Promise<{ status: string; service: string }> {
@@ -26,5 +33,19 @@ export class AuthService {
   async deviceLogin(input: DeviceLoginDto): Promise<AuthResponseDto> {
     await this.simulation.apply('auth');
     return this.loginService.deviceLogin(input);
+  }
+
+  async enrollBiometrics(input: BiometricEnrollmentDto): Promise<BiometricCredentialDto> {
+    await this.simulation.apply('auth');
+    return this.biometricLoginService.enroll(input);
+  }
+
+  async biometricLogin(input: BiometricLoginDto): Promise<AuthResponseDto> {
+    await this.simulation.apply('auth');
+    return this.biometricLoginService.login(input);
+  }
+
+  async revokeBiometrics(input: BiometricLoginDto): Promise<void> {
+    await this.biometricLoginService.revoke(input);
   }
 }

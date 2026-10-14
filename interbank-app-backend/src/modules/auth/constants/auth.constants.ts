@@ -8,6 +8,7 @@ export const AUTH_LIMITS = {
 
 export const DNI_PATTERN = /^\d{8}$/;
 export const AUTH_SESSION_CACHE_PREFIX = 'auth:session:';
+export const BIOMETRIC_CREDENTIAL_TTL_SECONDS = 30 * 24 * 60 * 60;
 export const PASSWORD_HASH_ROUNDS = 12;
 export const DUMMY_PASSWORD_HASH = '$2b$12$j1OamTaYmXWgquu3q9BQlupkvyIC/ttO3.HggwikMOsEOurThYUya';
 export const INVALID_CREDENTIALS_MESSAGE = 'Credenciales inválidas';

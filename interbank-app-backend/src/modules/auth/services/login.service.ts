@@ -43,7 +43,7 @@ export class LoginService {
       input.deviceName,
     );
     await this.repository.recordSuccessfulLogin(authenticatedUser.id);
-    return this.completeLogin(authenticatedUser, session, AuthLoginMode.FIRST_LOGIN);
+    return this.issueLogin(authenticatedUser, session, AuthLoginMode.FIRST_LOGIN);
   }
 
   async deviceLogin(input: DeviceLoginDto): Promise<AuthResponseDto> {
@@ -68,7 +68,7 @@ export class LoginService {
     }
 
     const session = await this.sessionCache.rotate(input.sessionToken, cachedSession);
-    return this.completeLogin(cachedSession.user, session, AuthLoginMode.DEVICE_LOGIN);
+    return this.issueLogin(cachedSession.user, session, AuthLoginMode.DEVICE_LOGIN);
   }
 
   private async validatePassword(
@@ -89,7 +89,7 @@ export class LoginService {
     return user;
   }
 
-  private async completeLogin(
+  async issueLogin(
     user: AuthUserProfile,
     session: IssuedSession,
     mode: AuthResponseDto['loginMode'],
