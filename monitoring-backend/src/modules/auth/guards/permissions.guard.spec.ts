@@ -37,4 +37,11 @@ describe('PermissionsGuard', () => {
 
     expect(() => guard.canActivate(contextWithPermissions([]))).toThrow(ForbiddenException);
   });
+
+  it('denies a guarded route without a declared permission', () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
+    expect(() =>
+      guard.canActivate(contextWithPermissions([PermissionCode.ACCESS_CONTROL_MANAGE])),
+    ).toThrow(ForbiddenException);
+  });
 });

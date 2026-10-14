@@ -140,14 +140,26 @@ model AuditLog {
 }
 
 model MonitoredService {
-  id            String        @id @default(uuid()) @db.Uuid
-  name          String
-  endpoint      String
-  status        ServiceStatus @default(RECOVERING)
-  lastCheckedAt DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  checks        HealthCheck[]
+  id                   String               @id @default(uuid()) @db.Uuid
+  code                 String               @unique @db.VarChar(60)
+  name                 String
+  endpoint             String
+  criticality          String               @default("HIGH") @db.VarChar(20)
+  monitoringEnabled    Boolean              @default(true)
+  pausedReason         String?              @db.VarChar(500)
+  version              Int                  @default(1)
+  status               ServiceStatus        @default(RECOVERING)
+  lastCheckedAt        DateTime?
+  lastLatencyMs        Int?
+  lastMessage          String?
+  anomalyScore         Float?
+  riskLevel            String?              @db.VarChar(20)
+  consecutiveFailures  Int                  @default(0)
+  consecutiveSuccesses Int                  @default(0)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  checks               HealthCheck[]
+  stateChanges         ServiceStateChange[]
 
   @@schema("monitoring")
 }
@@ -157,10 +169,27 @@ model HealthCheck {
   serviceId String           @db.Uuid
   status    ServiceStatus
   latencyMs Int
+  reachable Boolean          @default(false)
+  timedOut  Boolean          @default(false)
+  message   String?
+  origin    String           @default("SCHEDULED") @db.VarChar(20)
   checkedAt DateTime         @default(now())
   service   MonitoredService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   @@index([serviceId, checkedAt])
+  @@schema("monitoring")
+}
+
+model ServiceStateChange {
+  id         String           @id @default(uuid()) @db.Uuid
+  serviceId  String           @db.Uuid
+  fromStatus ServiceStatus
+  toStatus   ServiceStatus
+  reason     String?
+  changedAt  DateTime         @default(now())
+  service    MonitoredService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, changedAt])
   @@schema("monitoring")
 }
 

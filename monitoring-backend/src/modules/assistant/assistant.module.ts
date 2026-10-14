@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AiIntegrationModule } from '@/modules/ai-integration/ai-integration.module';
-import { AssistantController } from '@/modules/assistant/assistant.controller';
-import { AssistantService } from '@/modules/assistant/assistant.service';
+import { AssistantController } from '@/modules/assistant/controllers/assistant.controller';
+import { AssistantService } from '@/modules/assistant/services/assistant.service';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { IncidentsModule } from '@/modules/incidents/incidents.module';
 import { MonitoredServicesModule } from '@/modules/monitored-services/monitored-services.module';
