@@ -21,7 +21,7 @@ x-app-backend: &app-backend
   depends_on:
     redis: {condition: service_healthy}
   healthcheck:
-    test: [CMD, wget, -qO-, http://localhost:3000/health]
+    test: [CMD, wget, -qO-, http://127.0.0.1:3000/health]
     interval: 10s
     timeout: 3s
     retries: 5
@@ -52,7 +52,7 @@ services:
       app-backend-1: {condition: service_healthy}
       app-backend-2: {condition: service_healthy}
     healthcheck:
-      test: [CMD, wget, -qO-, http://localhost/health]
+      test: [CMD, wget, -qO-, http://127.0.0.1/health]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -114,7 +114,7 @@ services:
       redis: {condition: service_healthy}
       monitoring-ai: {condition: service_healthy}
     healthcheck:
-      test: [CMD, wget, -qO-, http://localhost:4000/health]
+      test: [CMD, wget, -qO-, http://127.0.0.1:4000/health]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -131,7 +131,7 @@ services:
     depends_on:
       monitoring-backend: {condition: service_healthy}
     healthcheck:
-      test: [CMD, wget, -qO-, http://localhost/dashboard-health]
+      test: [CMD, wget, -qO-, http://127.0.0.1/dashboard-health]
       interval: 10s
       timeout: 3s
       retries: 5

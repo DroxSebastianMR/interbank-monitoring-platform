@@ -21,6 +21,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:seed:demo-history": "node --env-file=.env --import tsx prisma/seed-demo-history.ts",
     "prisma:seed:verify": "node --env-file=.env scripts/verify-demo-seed.mjs"
   },
   "dependencies": {

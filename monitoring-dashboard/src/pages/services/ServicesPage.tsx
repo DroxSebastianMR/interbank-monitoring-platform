@@ -1,1 +1,0 @@
-import { ServiceTable } from '../../components/ServiceTable'; import { useServices } from '../../hooks/useServices'; export function ServicesPage(){const {data=[]}=useServices();return <section><div className="section-title"><h2>Todos los servicios</h2></div><ServiceTable services={data}/></section>}

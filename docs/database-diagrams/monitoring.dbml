@@ -1,0 +1,230 @@
+// monitoring: monitoring schema
+Enum "monitoring"."ServiceStatus" {
+  "OPERATIONAL"
+  "DEGRADED"
+  "UNAVAILABLE"
+  "RECOVERING"
+}
+
+Enum "monitoring"."EmployeeStatus" {
+  "ACTIVE"
+  "DISABLED"
+}
+
+Table "monitoring"."employees" {
+  "id" UUID [not null]
+  "employee_code" VARCHAR(30) [not null]
+  "corporate_email" VARCHAR(254) [not null]
+  "password_hash" VARCHAR(255) [not null]
+  "first_name" VARCHAR(80) [not null]
+  "last_name" VARCHAR(120) [not null]
+  "job_title" VARCHAR(120)
+  "department" VARCHAR(120)
+  "status" monitoring.EmployeeStatus [not null, default: 'ACTIVE']
+  "failed_login_attempts" INTEGER [not null, default: 0]
+  "locked_until" TIMESTAMP(3)
+  "last_login_at" TIMESTAMP(3)
+  "password_changed_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "employees_pkey"]
+    employee_code [unique, name: "employees_employee_code_key"]
+    corporate_email [unique, name: "employees_corporate_email_key"]
+    status [name: "employees_status_idx"]
+  }
+}
+
+Table "monitoring"."roles" {
+  "id" UUID [not null]
+  "code" VARCHAR(60) [not null]
+  "name" VARCHAR(100) [not null]
+  "description" VARCHAR(255)
+  "is_system" BOOLEAN [not null, default: true]
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "roles_pkey"]
+    code [unique, name: "roles_code_key"]
+  }
+}
+
+Table "monitoring"."permissions" {
+  "id" UUID [not null]
+  "code" VARCHAR(100) [not null]
+  "resource" VARCHAR(60) [not null]
+  "action" VARCHAR(40) [not null]
+  "description" VARCHAR(255)
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "permissions_pkey"]
+    code [unique, name: "permissions_code_key"]
+    (resource, action) [unique, name: "permissions_resource_action_key"]
+  }
+}
+
+Table "monitoring"."employee_roles" {
+  "employee_id" UUID [not null]
+  "role_id" UUID [not null]
+  "assigned_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (employee_id, role_id) [pk, name: "employee_roles_pkey"]
+    role_id [name: "employee_roles_role_id_idx"]
+  }
+}
+
+Table "monitoring"."role_permissions" {
+  "role_id" UUID [not null]
+  "permission_id" UUID [not null]
+
+  Indexes {
+    (role_id, permission_id) [pk, name: "role_permissions_pkey"]
+    permission_id [name: "role_permissions_permission_id_idx"]
+  }
+}
+
+Table "monitoring"."auth_sessions" {
+  "id" UUID [not null]
+  "employee_id" UUID [not null]
+  "refresh_token_hash" CHAR(64) [not null]
+  "ip_address" VARCHAR(64)
+  "user_agent" VARCHAR(500)
+  "expires_at" TIMESTAMP(3) [not null]
+  "last_used_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "revoked_at" TIMESTAMP(3)
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "auth_sessions_pkey"]
+    refresh_token_hash [unique, name: "auth_sessions_refresh_token_hash_key"]
+    (employee_id, revoked_at) [name: "auth_sessions_employee_id_revoked_at_idx"]
+    expires_at [name: "auth_sessions_expires_at_idx"]
+  }
+}
+
+Table "monitoring"."audit_logs" {
+  "id" UUID [not null]
+  "actor_id" UUID
+  "action" VARCHAR(100) [not null]
+  "resource" VARCHAR(80) [not null]
+  "resource_id" VARCHAR(100)
+  "outcome" VARCHAR(20) [not null]
+  "ip_address" VARCHAR(64)
+  "metadata" JSONB
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "audit_logs_pkey"]
+    (actor_id, created_at) [name: "audit_logs_actor_id_created_at_idx"]
+    (resource, created_at) [name: "audit_logs_resource_created_at_idx"]
+  }
+}
+
+Table "monitoring"."MonitoredService" {
+  "id" UUID [not null]
+  "code" VARCHAR(60) [not null]
+  "name" TEXT [not null]
+  "endpoint" TEXT [not null]
+  "criticality" VARCHAR(20) [not null, default: 'HIGH']
+  "monitoringEnabled" BOOLEAN [not null, default: true]
+  "pausedReason" VARCHAR(500)
+  "version" INTEGER [not null, default: 1]
+  "status" monitoring.ServiceStatus [not null, default: 'RECOVERING']
+  "lastCheckedAt" TIMESTAMP(3)
+  "lastLatencyMs" INTEGER
+  "lastMessage" TEXT
+  "anomalyScore" DOUBLEPRECISION
+  "riskLevel" VARCHAR(20)
+  "consecutiveFailures" INTEGER [not null, default: 0]
+  "consecutiveSuccesses" INTEGER [not null, default: 0]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "MonitoredService_pkey"]
+    code [unique, name: "MonitoredService_code_key"]
+  }
+}
+
+Table "monitoring"."HealthCheck" {
+  "id" UUID [not null]
+  "serviceId" UUID [not null]
+  "status" monitoring.ServiceStatus [not null]
+  "latencyMs" INTEGER [not null]
+  "reachable" BOOLEAN [not null, default: false]
+  "timedOut" BOOLEAN [not null, default: false]
+  "message" TEXT
+  "origin" VARCHAR(20) [not null, default: 'SCHEDULED']
+  "checkedAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "HealthCheck_pkey"]
+    (serviceId, checkedAt) [name: "HealthCheck_serviceId_checkedAt_idx"]
+  }
+}
+
+Table "monitoring"."ServiceStateChange" {
+  "id" UUID [not null]
+  "serviceId" UUID [not null]
+  "fromStatus" monitoring.ServiceStatus [not null]
+  "toStatus" monitoring.ServiceStatus [not null]
+  "reason" TEXT
+  "changedAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "ServiceStateChange_pkey"]
+    (serviceId, changedAt) [name: "ServiceStateChange_serviceId_changedAt_idx"]
+  }
+}
+
+Table "monitoring"."Incident" {
+  "id" UUID [not null]
+  "serviceKey" VARCHAR(100) [not null]
+  "title" TEXT [not null]
+  "status" VARCHAR(20) [not null]
+  "severity" VARCHAR(20) [not null, default: 'MEDIUM']
+  "evidence" JSONB
+  "openedAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "lastObservedAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "resolvedAt" TIMESTAMP(3)
+
+  Indexes {
+    id [pk, name: "Incident_pkey"]
+    (serviceKey, openedAt) [name: "Incident_serviceKey_openedAt_idx"]
+  }
+}
+
+Table "monitoring"."Alert" {
+  "id" UUID [not null]
+  "incidentId" UUID [not null]
+  "kind" VARCHAR(30) [not null]
+  "message" TEXT [not null]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "Alert_pkey"]
+    (incidentId, createdAt) [name: "Alert_incidentId_createdAt_idx"]
+  }
+}
+
+Ref "employee_roles_employee_id_fkey":"monitoring"."employees"."id" <? "monitoring"."employee_roles"."employee_id" [update: cascade, delete: cascade]
+
+Ref "employee_roles_role_id_fkey":"monitoring"."roles"."id" <? "monitoring"."employee_roles"."role_id" [update: cascade, delete: cascade]
+
+Ref "role_permissions_role_id_fkey":"monitoring"."roles"."id" <? "monitoring"."role_permissions"."role_id" [update: cascade, delete: cascade]
+
+Ref "role_permissions_permission_id_fkey":"monitoring"."permissions"."id" <? "monitoring"."role_permissions"."permission_id" [update: cascade, delete: cascade]
+
+Ref "auth_sessions_employee_id_fkey":"monitoring"."employees"."id" <? "monitoring"."auth_sessions"."employee_id" [update: cascade, delete: cascade]
+
+Ref "audit_logs_actor_id_fkey":"monitoring"."employees"."id" ?<? "monitoring"."audit_logs"."actor_id" [update: cascade, delete: set null]
+
+Ref "HealthCheck_serviceId_fkey":"monitoring"."MonitoredService"."id" <? "monitoring"."HealthCheck"."serviceId" [update: cascade, delete: cascade]
+
+Ref "ServiceStateChange_serviceId_fkey":"monitoring"."MonitoredService"."id" <? "monitoring"."ServiceStateChange"."serviceId" [update: cascade, delete: cascade]
+
+Ref "Alert_incidentId_fkey":"monitoring"."Incident"."id" <? "monitoring"."Alert"."incidentId" [update: cascade, delete: cascade]

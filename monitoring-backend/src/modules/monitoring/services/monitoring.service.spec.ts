@@ -15,10 +15,10 @@ describe('MonitoringService', () => {
   const config = new ConfigService({
     integrations: { appBackendUrl: 'http://nginx' },
     monitoring: { timeoutMs: 3000 },
-    rules: { maxHealthFailures: 2, latencyThresholdMs: 1000 },
+    rules: { maxHealthFailures: 3, latencyThresholdMs: 1000 },
   });
 
-  it('degrades on the first failed check and marks unavailable on the second', async () => {
+  it('degrades after transient failures and confirms unavailability on the third', async () => {
     const get = jest.fn().mockReturnValue(throwError(() => new Error('timeout')));
     const incidentSync = jest.fn().mockResolvedValue(undefined);
     const monitored = new MonitoredServicesService();
@@ -35,15 +35,21 @@ describe('MonitoringService', () => {
     );
 
     expect((await monitoring.check('login'))?.status).toBe(ServiceStatus.DEGRADED);
+    expect((await monitoring.check('login'))?.status).toBe(ServiceStatus.DEGRADED);
     expect((await monitoring.check('login'))?.status).toBe(ServiceStatus.UNAVAILABLE);
-    expect(get).toHaveBeenCalledWith('http://nginx/auth/health', { timeout: 3000 });
-    expect(incidentSync).toHaveBeenCalledTimes(2);
+    expect(get).toHaveBeenCalledWith('http://nginx/auth/health', {
+      timeout: 3000,
+      maxRedirects: 0,
+    });
+    expect(incidentSync).toHaveBeenCalledTimes(3);
   });
 
   it('continues with rules when the AI service fails', async () => {
     const monitored = new MonitoredServicesService();
     const monitoring = new MonitoringService(
-      { get: jest.fn().mockReturnValue(of({ data: {} })) } as unknown as HttpService,
+      {
+        get: jest.fn().mockReturnValue(of({ data: { status: 'ok', service: 'auth' } })),
+      } as unknown as HttpService,
       config,
       monitored,
       new DetectionService(config),
@@ -82,11 +88,11 @@ describe('MonitoringService', () => {
     expect(second).toBe(first);
     expect(get).toHaveBeenCalledTimes(1);
 
-    healthResponse.next({ data: {} });
+    healthResponse.next({ data: { status: 'ok', service: 'auth' } });
     healthResponse.complete();
     await expect(first).resolves.toMatchObject({ status: ServiceStatus.OPERATIONAL });
 
-    get.mockReturnValue(of({ data: {} }));
+    get.mockReturnValue(of({ data: { status: 'ok', service: 'auth' } }));
     await monitoring.check('login');
     expect(get).toHaveBeenCalledTimes(2);
   });

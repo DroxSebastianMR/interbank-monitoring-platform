@@ -1,5 +1,6 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { DetectionModule } from '@/modules/detection/detection.module';
 import { AiIntegrationModule } from '@/modules/ai-integration/ai-integration.module';
 import { IncidentsModule } from '@/modules/incidents/incidents.module';
@@ -12,6 +13,7 @@ import { PrometheusMetricsService } from '@/modules/monitoring/services/promethe
 @Module({
   imports: [
     HttpModule,
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 6 }]),
     AiIntegrationModule,
     DetectionModule,
     IncidentsModule,

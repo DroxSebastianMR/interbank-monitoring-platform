@@ -1,1 +1,0 @@
-export type ServiceStatus='OPERATIONAL'|'DEGRADED'|'UNAVAILABLE'|'RECOVERING'; export interface MonitoredService{id:string;name:string;status:ServiceStatus;lastCheckedAt:string|null;latencyMs:number|null;message:string;}

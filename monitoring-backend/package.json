@@ -17,7 +17,8 @@
     "benchmark:endpoints": "node scripts/benchmark-endpoints.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:seed:demo-history": "node --env-file=.env --import tsx prisma/seed-demo-history.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.0",

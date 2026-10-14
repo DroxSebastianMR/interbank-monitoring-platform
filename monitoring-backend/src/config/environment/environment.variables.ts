@@ -94,7 +94,7 @@ export class EnvironmentVariables {
   @IsInt()
   @Min(1)
   @IsOptional()
-  MAX_HEALTH_FAILURES = 2;
+  MAX_HEALTH_FAILURES = 3;
 
   @IsString()
   @IsOptional()

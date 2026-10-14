@@ -205,17 +205,16 @@ async function seedAdministrator(): Promise<void> {
 }
 
 async function seedMonitoredServices(): Promise<void> {
-  for (const [name, endpoint] of [
-    ['Login', '/health'],
-    ['Balance', '/health'],
-    ['Transfers', '/health'],
+  for (const [code, name, endpoint] of [
+    ['login', 'Login', '/auth/health'],
+    ['balance', 'Balance', '/accounts/health'],
+    ['transfers', 'Transfers', '/transfers/health'],
   ] as const) {
-    const existing = await prisma.monitoredService.findFirst({ where: { name } });
-    if (existing) {
-      await prisma.monitoredService.update({ where: { id: existing.id }, data: { endpoint } });
-    } else {
-      await prisma.monitoredService.create({ data: { name, endpoint } });
-    }
+    await prisma.monitoredService.upsert({
+      where: { code },
+      update: {},
+      create: { code, name, endpoint },
+    });
   }
 }
 
