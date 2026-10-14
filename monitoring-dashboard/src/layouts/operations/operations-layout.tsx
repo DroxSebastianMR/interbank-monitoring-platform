@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from '@/app/providers/auth/use-auth';
 import { PATHS } from '@/app/router/constants/paths';
+import { Button } from '@/components/ui/button';
 const links = [
   [PATHS.DASHBOARD, "Resumen"],
   [PATHS.SERVICES, "Servicios"],
@@ -42,7 +43,7 @@ export function OperationsLayout() {
             <span>
               {employee?.firstName} {employee?.lastName}
             </span>
-            <button
+            <Button variant="outline" size="sm"
               onClick={() =>
                 void signOut().finally(() =>
                   navigate(PATHS.LOGIN, { replace: true }),
@@ -50,7 +51,7 @@ export function OperationsLayout() {
               }
             >
               Salir
-            </button>
+            </Button>
           </div>
         </header>
         <Outlet />

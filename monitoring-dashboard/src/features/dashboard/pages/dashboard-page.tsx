@@ -4,6 +4,7 @@ import { useAuth } from '@/app/providers/auth/use-auth';
 import { useOverview } from '@/features/dashboard/hooks/use-overview';
 import { dashboardService } from '@/features/dashboard/services/dashboard.service';
 import { OverviewIndicators } from '@/features/dashboard/components/overview-indicators';
+import { InfrastructureTopology } from '@/features/dashboard/components/infrastructure-topology';
 import { ServiceTable } from '@/features/services/components/service-table';
 import { PATHS } from '@/app/router/constants/paths';
 
@@ -148,21 +149,15 @@ export function DashboardPage() {
           )}
         </section>
       </div>
-      <section className="table-card">
-        <h2>Infraestructura configurada</h2>
-        <p>La topología representa conexiones configuradas, no confirma que una instancia esté activa.</p>
-        {topology.isError ? (
-          <p role="alert">No se pudo cargar la topología.</p>
-        ) : topology.data ? (
-          <ul>
-            {topology.data.nodes.map((node) => (
-              <li key={node.id}>{node.id} · {node.kind} · {node.status}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>Consultando topología…</p>
-        )}
-      </section>
+      {topology.isError ? (
+        <section className="notice error" role="alert">
+          No se pudo cargar la topología de infraestructura.
+        </section>
+      ) : topology.data ? (
+        <InfrastructureTopology topology={topology.data} />
+      ) : (
+        <section className="notice">Consultando topología de infraestructura…</section>
+      )}
     </section>
   );
 }
