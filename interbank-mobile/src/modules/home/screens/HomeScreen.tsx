@@ -2,6 +2,7 @@ import type { NavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useState } from "react";
+import type { LayoutChangeEvent } from "react-native";
 import {
   Pressable,
   RefreshControl,
@@ -10,7 +11,10 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import type { TabParamList } from "@/src/application/navigation/TabNavigator";
 import { useAuth } from "@/src/modules/auth/context/AuthProvider";
@@ -21,7 +25,6 @@ import { HomeHeader } from "@/src/modules/home/components/HomeHeader";
 import { HomePrimaryActions } from "@/src/modules/home/components/HomePrimaryActions";
 import { HomePromotions } from "@/src/modules/home/components/HomePromotions";
 import { HomeScreenSkeleton } from "@/src/modules/home/components/HomeScreenSkeleton";
-import { RecentTransactions } from "@/src/modules/home/components/RecentTransactions";
 import {
   HOME_PROMOTION_SHORTCUTS,
   HOME_PROMOTIONS,
@@ -36,8 +39,10 @@ export function HomeScreen() {
   const { user } = useAuth();
   const { data, loading, error, reload } = useHomeSummary();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [section, setSection] = useState<HomeSection>("operations");
+  const [ambientHeight, setAmbientHeight] = useState(900);
   const firstName = data?.firstName ?? user?.firstName ?? "Cliente";
 
   const navigateToTab = useCallback(
@@ -56,14 +61,32 @@ export function HomeScreen() {
     [navigateToTab],
   );
 
+  const handleContentLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const height = Math.ceil(event.nativeEvent.layout.y + insets.top + 48);
+      setAmbientHeight((current) => (current === height ? current : height));
+    },
+    [insets.top],
+  );
+
   return (
-    <View className="flex-1 bg-[#EEF8F1]">
+    <View className="flex-1 bg-[#F7FAF8]">
       <StatusBar style="light" />
-      <HomeAmbientBackground />
+      <View
+        pointerEvents="none"
+        className="absolute inset-x-0 top-0 overflow-hidden"
+        style={{ height: ambientHeight }}
+      >
+        <HomeAmbientBackground />
+      </View>
       <SafeAreaView className="flex-1" edges={["top"]}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 150 }}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
+          contentContainerStyle={{
+            paddingBottom: Math.max(insets.bottom, 12) + 90,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={loading}
@@ -105,24 +128,23 @@ export function HomeScreen() {
                   onQrPress={() => navigateToTab("QrPayment")}
                   onPlinearPress={() => handleAction("PLINEAR")}
                 />
-                <ContentSectionSurface>
-                  <HomeContentSwitch
-                    accounts={data.accounts}
-                    quickActions={data.quickActions}
-                    selected={section}
-                    onChange={setSection}
-                    onAction={handleAction}
-                  />
-                  <HomePromotions
-                    items={HOME_PROMOTIONS}
-                    onPromotionPress={() => navigateToTab("Profile")}
-                    onShortcutPress={() => navigateToTab("Profile")}
-                    shortcuts={HOME_PROMOTION_SHORTCUTS}
-                  />
-                  <RecentTransactions
-                    items={data.recentTransactions.slice(0, 5)}
-                  />
-                </ContentSectionSurface>
+                <View onLayout={handleContentLayout}>
+                  <ContentSectionSurface>
+                    <HomeContentSwitch
+                      accounts={data.accounts}
+                      quickActions={data.quickActions}
+                      selected={section}
+                      onChange={setSection}
+                      onAction={handleAction}
+                    />
+                    <HomePromotions
+                      items={HOME_PROMOTIONS}
+                      onPromotionPress={() => navigateToTab("Profile")}
+                      onShortcutPress={() => navigateToTab("Profile")}
+                      shortcuts={HOME_PROMOTION_SHORTCUTS}
+                    />
+                  </ContentSectionSurface>
+                </View>
               </>
             )}
           </View>

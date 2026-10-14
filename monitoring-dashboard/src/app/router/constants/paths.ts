@@ -7,4 +7,5 @@ export const PATHS = {
   ALERTS: '/alerts',
   ANALYTICS: '/analytics',
   HEALTH: '/health',
+  ASSISTANT: '/assistant',
 } as const;

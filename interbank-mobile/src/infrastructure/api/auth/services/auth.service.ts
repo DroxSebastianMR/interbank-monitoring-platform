@@ -2,6 +2,9 @@ import { apiClient } from "@/src/infrastructure/api/client/axios.instance";
 import { API_ENDPOINTS } from "@/src/infrastructure/api/endpoints";
 import type {
   AuthApiResponse,
+  BiometricCredentialRequest,
+  BiometricCredentialResponse,
+  BiometricEnrollmentRequest,
   DeviceLoginRequest,
   FirstLoginRequest,
 } from "@/src/infrastructure/api/auth/services/auth.types";
@@ -21,5 +24,29 @@ export const authService = {
       request,
     );
     return data;
+  },
+
+  async enrollBiometrics(
+    request: BiometricEnrollmentRequest,
+  ): Promise<BiometricCredentialResponse> {
+    const { data } = await apiClient.post<BiometricCredentialResponse>(
+      API_ENDPOINTS.AUTH.BIOMETRIC_ENROLL,
+      request,
+    );
+    return data;
+  },
+
+  async biometricLogin(
+    request: BiometricCredentialRequest,
+  ): Promise<AuthApiResponse> {
+    const { data } = await apiClient.post<AuthApiResponse>(
+      API_ENDPOINTS.AUTH.BIOMETRIC_LOGIN,
+      request,
+    );
+    return data;
+  },
+
+  async revokeBiometrics(request: BiometricCredentialRequest): Promise<void> {
+    await apiClient.post(API_ENDPOINTS.AUTH.BIOMETRIC_REVOKE, request);
   },
 };

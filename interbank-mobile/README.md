@@ -33,10 +33,10 @@ node node_modules/expo/bin/cli start
 Para Android Emulator, normalmente se usa:
 
 ```env
-EXPO_PUBLIC_API_URL=http://10.0.2.2:3000
+EXPO_PUBLIC_API_URL=http://10.0.2.2:8080
 ```
 
-En un teléfono físico, reemplaza la URL por la IP local del equipo que ejecuta el backend. En web puede mantenerse `http://localhost:3000`.
+El móvil se conecta al backend de la app a través de Nginx, que balancea las dos instancias en el puerto `8080`. En un teléfono físico, usa la IP LAN de la PC (por ejemplo `http://192.168.100.8:8080`) y verifica que ambos estén en la misma red. En web usa `http://localhost:8080`. La IP LAN puede cambiar al conectarte a otra red: actualiza `.env` si sucede.
 
 ## Comandos
 

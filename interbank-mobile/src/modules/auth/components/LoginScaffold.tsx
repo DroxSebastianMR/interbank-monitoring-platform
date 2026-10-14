@@ -1,12 +1,10 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import { Menu } from "lucide-react-native";
 import React from "react";
 import type { PropsWithChildren } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,26 +13,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { APP_CONFIG } from "@/src/config/app.config";
 import { InterbankBrand } from "@/src/modules/auth/components/InterbankBrand";
-import { LiquidGlassSurface } from "@/src/shared/components/LiquidGlassSurface";
 import { BANKING_COLORS } from "@/src/shared/theme/banking.theme";
 
-interface Props extends PropsWithChildren {
-  onMenuPress: () => void;
-  disabled?: boolean;
-  reduceTransparency?: boolean;
-}
-
-export function LoginScaffold({
-  children,
-  onMenuPress,
-  disabled,
-  reduceTransparency,
-}: Props) {
+export function LoginScaffold({ children }: PropsWithChildren) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const compact = width < 360 || height < 700;
+  const compact = width < 375 || height < 740;
+  const narrow = width < 350;
 
   return (
     <View style={styles.screen}>
@@ -59,48 +45,28 @@ export function LoginScaffold({
             style={[
               styles.hero,
               compact && styles.heroCompact,
-              { paddingTop: insets.top + 18 },
+              {
+                paddingTop: insets.top + (compact ? 12 : 18),
+                paddingHorizontal: narrow ? 16 : 24,
+              },
             ]}
           >
             <View pointerEvents="none" style={styles.ambientRing} />
             <View pointerEvents="none" style={styles.ambientLight} />
             <View style={styles.header}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={onMenuPress}
-                disabled={disabled}
-                accessibilityRole="button"
-                accessibilityLabel="Abrir menú de ayuda"
-                accessibilityState={{ disabled: !!disabled }}
-                style={styles.menu}
-              >
-                <LiquidGlassSurface
-                  tone="neutral"
-                  intensity={18}
-                  opaque={reduceTransparency}
-                  style={styles.menuSurface}
-                >
-                  <View style={styles.glassContent}>
-                    <Menu
-                      size={22}
-                      color={reduceTransparency ? "#173A27" : "#FFFFFF"}
-                      strokeWidth={1.8}
-                    />
-                  </View>
-                </LiquidGlassSurface>
-              </TouchableOpacity>
-              <InterbankBrand variant="login" />
-              <Text
-                style={styles.version}
-                accessibilityLabel={`Versión ${APP_CONFIG.VERSION}`}
-              >
-                v{APP_CONFIG.VERSION}
-              </Text>
+              <InterbankBrand
+                variant="login"
+                size={narrow ? "compact" : "regular"}
+              />
             </View>
             <View style={[styles.heading, compact && styles.headingCompact]}>
               <Text
                 accessibilityRole="header"
-                style={[styles.title, compact && styles.titleCompact]}
+                style={[
+                  styles.title,
+                  compact && styles.titleCompact,
+                  narrow && styles.titleNarrow,
+                ]}
               >
                 Todo lo que necesitas,{"\n"}en un solo App.
               </Text>
@@ -109,7 +75,10 @@ export function LoginScaffold({
           <View
             style={[
               styles.body,
-              { paddingBottom: Math.max(insets.bottom, 20) + 16 },
+              {
+                paddingBottom: Math.max(insets.bottom, 20) + 16,
+                paddingHorizontal: narrow ? 16 : 24,
+              },
             ]}
           >
             <View style={styles.form}>{children}</View>
@@ -121,31 +90,22 @@ export function LoginScaffold({
 }
 
 const styles = StyleSheet.create({
-  heroCompact: { paddingBottom: 40 },
+  heroCompact: { paddingBottom: 42 },
   headingCompact: { paddingTop: 24 },
   titleCompact: { fontSize: 26, lineHeight: 32 },
-  glassContent: { zIndex: 1 },
-  screen: { flex: 1, backgroundColor: BANKING_COLORS.green },
+  titleNarrow: { fontSize: 23, lineHeight: 29 },
+  screen: { flex: 1, backgroundColor: "#F7FAF8" },
   content: { flexGrow: 1 },
   hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: "hidden" },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
+    justifyContent: "center",
+    minHeight: 44,
     width: "100%",
     maxWidth: 460,
     alignSelf: "center",
   },
-  menu: { borderRadius: 22 },
-  menuSurface: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  version: { color: "rgba(255,255,255,0.8)", fontSize: 11 },
   heading: { alignItems: "center", paddingTop: 36 },
   title: {
     color: "#FFFFFF",

@@ -9,6 +9,7 @@ const links = [
   [PATHS.ALERTS, "Alertas"],
   [PATHS.ANALYTICS, "Analítica"],
   [PATHS.HEALTH, "Health"],
+  [PATHS.ASSISTANT, "Asistente IA"],
 ];
 export function OperationsLayout() {
   const { employee, signOut } = useAuth();

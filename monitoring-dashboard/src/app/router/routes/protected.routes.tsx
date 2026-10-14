@@ -23,6 +23,9 @@ export const protectedRoutes: RouteObject[] = [
       { path: PATHS.HEALTH, lazy: async () => ({
         Component: (await import('@/features/health/pages/health-page')).HealthPage,
       }) },
+      { path: PATHS.ASSISTANT, lazy: async () => ({
+        Component: (await import('@/features/assistant/pages/assistant-page')).AssistantPage,
+      }) },
     ] },
   ] },
 ];

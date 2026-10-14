@@ -13,4 +13,11 @@ export const API_ENDPOINTS = {
     CHECK: (id: string) => `/monitoring/${encodeURIComponent(id)}/check`,
   },
   HEALTH: '/health',
+  ASSISTANT: {
+    CONVERSATIONS: '/assistant/conversations',
+    CONVERSATION: (id: string) => `/assistant/conversations/${encodeURIComponent(id)}`,
+    MESSAGES: (id: string) => `/assistant/conversations/${encodeURIComponent(id)}/messages`,
+    FEEDBACK: (id: string) => `/assistant/messages/${encodeURIComponent(id)}/feedback`,
+    CAPABILITIES: '/assistant/capabilities',
+  },
 } as const;

@@ -12,10 +12,10 @@ import {
   loginUser,
 } from "@/src/domain/auth/auth.usecase";
 import {
-  disableDeviceBiometrics,
   enableDeviceBiometrics,
   loginWithDeviceBiometrics,
 } from "@/src/domain/auth/biometric-login.usecase";
+import { biometricLoginService } from "@/src/infrastructure/device/biometric-login.service";
 import {
   BiometricAuthError,
   BiometricFailure,
@@ -54,22 +54,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let active = true;
 
     const hydrate = async (): Promise<void> => {
-      const [cachedUser, sessionToken] = await Promise.all([
-        authStorage.getUser(),
-        authStorage.getSessionToken(),
-      ]);
+      try {
+        const [cachedUser, sessionToken] = await Promise.all([
+          authStorage.getUser(),
+          authStorage.getSessionToken(),
+        ]);
 
-      if (!active) return;
-      if (cachedUser && sessionToken) {
-        await authStorage.clearAccessToken();
         if (!active) return;
-        setUser(cachedUser);
-        setEntryMode("device-login");
-      } else {
+        if (cachedUser && sessionToken) {
+          await authStorage.clearAccessToken();
+          if (!active) return;
+          setUser(cachedUser);
+          setEntryMode("device-login");
+        } else {
+          setUser(null);
+          setEntryMode("first-login");
+        }
+      } catch {
+        if (!active) return;
         setUser(null);
         setEntryMode("first-login");
+      } finally {
+        if (active) setStatus("unauthenticated");
       }
-      setStatus("unauthenticated");
     };
 
     void hydrate();
@@ -81,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (credentials: LoginCredentials): Promise<void> => {
       const response = await loginUser(credentials);
-      await disableDeviceBiometrics();
+      await biometricLoginService.clear();
       await Promise.all([
         authStorage.setAccessToken(response.token.accessToken),
         authStorage.setSessionToken(response.session.sessionToken),

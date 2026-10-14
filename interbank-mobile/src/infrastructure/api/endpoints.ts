@@ -3,6 +3,9 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: "/auth/login",
     DEVICE_LOGIN: "/auth/device-login",
+    BIOMETRIC_ENROLL: "/auth/biometrics/enroll",
+    BIOMETRIC_LOGIN: "/auth/biometrics/login",
+    BIOMETRIC_REVOKE: "/auth/biometrics/revoke",
   },
   HOME: { SUMMARY: "/home" },
   ACCOUNTS: { LIST: "/accounts" },

@@ -8,6 +8,8 @@ export enum PermissionCode {
   NOTIFICATIONS_MANAGE = 'notifications.manage',
   NOTIFICATIONS_READ = 'notifications.read',
   ANALYTICS_READ = 'analytics.read',
+  ASSISTANT_READ = 'assistant.read',
+  ASSISTANT_ASK = 'assistant.ask',
   ACCESS_CONTROL_READ = 'access-control.read',
   ACCESS_CONTROL_MANAGE = 'access-control.manage',
   AUDIT_READ = 'audit.read',

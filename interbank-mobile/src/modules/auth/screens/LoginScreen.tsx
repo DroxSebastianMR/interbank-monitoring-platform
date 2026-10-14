@@ -1,4 +1,4 @@
-import { KeyRound, UserRound } from "lucide-react-native";
+import { KeyRound, Mail } from "lucide-react-native";
 import React, { useRef, useState } from "react";
 import {
   Keyboard,
@@ -17,17 +17,14 @@ import { LoginScaffold } from "@/src/modules/auth/components/LoginScaffold";
 import { LoginSubmitButton } from "@/src/modules/auth/components/LoginSubmitButton";
 import { useAuthAccessibility } from "@/src/modules/auth/hooks/useAuthAccessibility";
 import { useLogin } from "@/src/modules/auth/hooks/useLogin";
-import { ScreenLoader } from "@/src/modules/system/ui/components/ScreenLoader";
-import { BANKING_COLORS } from "@/src/shared/theme/banking.theme";
 
 export function LoginScreen() {
-  const { form, loading, isValid, fieldErrors, onChange, onBlur, handleLogin } =
-    useLogin();
+  const { form, loading, fieldErrors, onChange, handleLogin } = useLogin();
   const { reduceTransparency, reduceMotion } = useAuthAccessibility();
   const [helpTopic, setHelpTopic] = useState<LoginHelpTopic>("menu");
   const [helpVisible, setHelpVisible] = useState(false);
   const documentRef = useRef<TextInput>(null);
-  const userRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
 
   const openHelp = (topic: LoginHelpTopic) => {
@@ -41,39 +38,34 @@ export function LoginScreen() {
   };
 
   return (
-    <LoginScaffold
-      onMenuPress={() => openHelp("menu")}
-      disabled={loading}
-      reduceTransparency={reduceTransparency}
-    >
+    <LoginScaffold>
       <LoginDocumentField
         value={form.documentNumber}
         error={fieldErrors.documentNumber}
         disabled={loading}
+        reduceTransparency={reduceTransparency}
         onChange={(value) => onChange("documentNumber", value)}
-        onBlur={() => onBlur("documentNumber")}
-        onDocumentPress={() => openHelp("document")}
         inputRef={documentRef}
-        onNext={() => userRef.current?.focus()}
       />
       <AuthInput
         variant="login"
-        label="Usuario"
-        placeholder="Ingresa tu usuario"
-        icon={<UserRound color="#72867A" size={20} strokeWidth={1.7} />}
+        label="Correo"
+        placeholder="Ingresa tu correo"
+        icon={<Mail color="#72867A" size={20} strokeWidth={1.7} />}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
         value={form.email}
         editable={!loading}
         onChangeText={(value) => onChange("email", value)}
-        onBlur={() => onBlur("email")}
         error={fieldErrors.email}
-        textContentType="username"
-        autoComplete="username"
+        showErrorMessage={false}
+        keyboardAppearance="light"
+        textContentType="emailAddress"
+        autoComplete="email"
         returnKeyType="next"
         onSubmitEditing={() => passwordRef.current?.focus()}
-        inputRef={userRef}
+        inputRef={emailRef}
       />
       <AuthInput
         variant="login"
@@ -86,8 +78,9 @@ export function LoginScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         onChangeText={(value) => onChange("password", value)}
-        onBlur={() => onBlur("password")}
         error={fieldErrors.password}
+        showErrorMessage={false}
+        keyboardAppearance="light"
         textContentType="password"
         autoComplete="current-password"
         returnKeyType="go"
@@ -102,7 +95,7 @@ export function LoginScreen() {
           Keyboard.dismiss();
           void handleLogin();
         }}
-        disabled={loading || !isValid}
+        disabled={loading}
         loading={loading}
         reduceTransparency={reduceTransparency}
       />
@@ -121,23 +114,19 @@ export function LoginScreen() {
         </Text>
       </TouchableOpacity>
       <View style={styles.registration}>
-        <View style={styles.divider}>
-          <View style={styles.line} />
+        <View style={styles.registrationRow}>
           <Text style={styles.newUser}>¿Aún no tienes usuario?</Text>
-          <View style={styles.line} />
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => openHelp("registration")}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Crear usuario"
+            style={styles.create}
+          >
+            <Text style={styles.createText}>Crear usuario</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => openHelp("registration")}
-          disabled={loading}
-          accessibilityRole="button"
-          style={styles.create}
-        >
-          <Text style={styles.createText}>Crear usuario</Text>
-        </TouchableOpacity>
-        <Text style={styles.disclaimer}>
-          Banca simulada · No procesa dinero real
-        </Text>
       </View>
       <LoginHelpSheet
         visible={helpVisible}
@@ -146,7 +135,6 @@ export function LoginScreen() {
         onClose={closeHelp}
         reduceMotion={reduceMotion}
       />
-      <ScreenLoader visible={loading} />
     </LoginScaffold>
   );
 }
@@ -167,29 +155,25 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textDecorationLine: "underline",
   },
-  registration: { marginTop: "auto", paddingTop: 24 },
-  divider: {
+  registration: { marginTop: 14 },
+  registrationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
+    justifyContent: "center",
+    flexWrap: "wrap",
+    columnGap: 6,
   },
-  line: { height: 1, flex: 1, backgroundColor: "#DCE6DF" },
   newUser: { fontSize: 13, color: "#65786B" },
   create: {
-    borderWidth: 1,
-    borderColor: BANKING_COLORS.green,
-    minHeight: 54,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 4,
   },
-  createText: { fontSize: 16, fontWeight: "600", color: BANKING_COLORS.green },
-  disclaimer: {
-    color: "#718379",
-    fontSize: 10,
-    textAlign: "center",
-    marginTop: 20,
+  createText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#007A34",
+    textDecorationLine: "underline",
   },
 });

@@ -10,10 +10,10 @@ import {
 } from "@/src/domain/auth/biometric.types";
 import type { BiometricCapability } from "@/src/domain/auth/biometric.types";
 
-const VAULT_KEY = "interbank.biometric-credential.v1";
-const BINDING_KEY = "interbank.biometric-binding.v1";
+const VAULT_KEY = "interbank.biometric-credential.v2";
+const BINDING_KEY = "interbank.biometric-binding.v2";
 const VAULT_OPTIONS: SecureStore.SecureStoreOptions = {
-  keychainService: "interbank.biometric-login.v1",
+  keychainService: "interbank.biometric-login.v2",
   keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
   requireAuthentication: true,
   authenticationPrompt: "Confirma tu identidad para ingresar a Interbank",
@@ -25,7 +25,16 @@ interface DeviceBinding {
 }
 
 interface ProtectedCredential extends DeviceBinding {
-  password: string;
+  credential: string;
+}
+
+async function clearLegacyPassword(): Promise<void> {
+  await Promise.all([
+    SecureStore.deleteItemAsync("interbank.biometric-credential.v1", {
+      keychainService: "interbank.biometric-login.v1",
+    }),
+    SecureStore.deleteItemAsync("interbank.biometric-binding.v1"),
+  ]);
 }
 
 async function clear(): Promise<void> {
@@ -35,10 +44,12 @@ async function clear(): Promise<void> {
       keychainService: VAULT_OPTIONS.keychainService,
     }),
     SecureStore.deleteItemAsync(BINDING_KEY),
+    clearLegacyPassword(),
   ]);
 }
 
 async function capability(): Promise<BiometricCapability> {
+  if (Platform.OS !== "web") await clearLegacyPassword();
   const kind =
     Platform.OS === "ios"
       ? BiometricKind.FACE_ID
@@ -79,6 +90,7 @@ async function capability(): Promise<BiometricCapability> {
 
 async function isEnabled(binding: DeviceBinding): Promise<boolean> {
   if (Platform.OS === "web") return false;
+  await clearLegacyPassword();
   const stored = await SecureStore.getItemAsync(BINDING_KEY);
   if (!stored) return false;
   try {
@@ -166,15 +178,15 @@ async function unlock(binding: DeviceBinding): Promise<string> {
       value === null ||
       !("userId" in value) ||
       !("deviceId" in value) ||
-      !("password" in value) ||
+      !("credential" in value) ||
       value.userId !== binding.userId ||
       value.deviceId !== binding.deviceId ||
-      typeof value.password !== "string" ||
-      value.password.length < 8
+      typeof value.credential !== "string" ||
+      value.credential.length < 32
     ) {
       throw new Error("Invalid binding");
     }
-    return value.password;
+    return value.credential;
   } catch {
     await clear();
     throw new BiometricAuthError(BiometricFailure.INVALIDATED);

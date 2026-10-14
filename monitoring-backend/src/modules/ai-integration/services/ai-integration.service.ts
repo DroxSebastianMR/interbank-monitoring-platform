@@ -16,11 +16,13 @@ import type { MetricWindow } from '@/modules/monitoring/interfaces/metric-window
 @Injectable()
 export class AiIntegrationService {
   private readonly baseUrl: string;
+  private readonly internalToken: string | undefined;
   constructor(
     private readonly http: HttpService,
     config: ConfigService,
   ) {
     this.baseUrl = config.get<string>('integrations.aiServiceUrl', 'http://localhost:8000');
+    this.internalToken = config.get<string>('AI_INTERNAL_TOKEN') || undefined;
   }
   async health(): Promise<AiHealth> {
     const response = await firstValueFrom(this.http.get<AiHealth>(`${this.baseUrl}/health`));
@@ -40,6 +42,7 @@ export class AiIntegrationService {
     const response = await firstValueFrom(
       this.http.post<AssistantAnswer>(`${this.baseUrl}/v1/assistant/answer`, evidence, {
         timeout: AI_ASSISTANT_TIMEOUT_MS,
+        headers: this.internalToken ? { 'X-Internal-Token': this.internalToken } : undefined,
       }),
     );
     return response.data;

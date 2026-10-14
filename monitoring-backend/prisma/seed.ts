@@ -26,6 +26,8 @@ const permissions = [
     'Administrar comunicaciones operativas',
   ],
   [PermissionCode.ANALYTICS_READ, 'analytics', 'read', 'Consultar métricas y analítica'],
+  [PermissionCode.ASSISTANT_READ, 'assistant', 'read', 'Consultar conversaciones propias'],
+  [PermissionCode.ASSISTANT_ASK, 'assistant', 'ask', 'Consultar el asistente operativo'],
   [PermissionCode.ACCESS_CONTROL_READ, 'access-control', 'read', 'Consultar roles y permisos'],
   [
     PermissionCode.ACCESS_CONTROL_MANAGE,
@@ -67,6 +69,8 @@ const roleDefinitions: Record<
       PermissionCode.INCIDENTS_MANAGE,
       PermissionCode.ALERTS_READ,
       PermissionCode.ANALYTICS_READ,
+      PermissionCode.ASSISTANT_READ,
+      PermissionCode.ASSISTANT_ASK,
       PermissionCode.AUDIT_READ,
       PermissionCode.LOGS_READ,
       PermissionCode.TRANSACTIONS_READ,
@@ -86,6 +90,8 @@ const roleDefinitions: Record<
       PermissionCode.NOTIFICATIONS_READ,
       PermissionCode.TRANSACTIONS_READ,
       PermissionCode.SESSIONS_READ,
+      PermissionCode.ASSISTANT_READ,
+      PermissionCode.ASSISTANT_ASK,
     ],
   },
   [EmployeeRoleCode.AUDITOR]: {
@@ -102,6 +108,8 @@ const roleDefinitions: Record<
       PermissionCode.LOGS_READ,
       PermissionCode.TRANSACTIONS_READ,
       PermissionCode.SESSIONS_READ,
+      PermissionCode.ASSISTANT_READ,
+      PermissionCode.ASSISTANT_ASK,
     ],
   },
   [EmployeeRoleCode.SECURITY_ANALYST]: {
@@ -117,6 +125,8 @@ const roleDefinitions: Record<
       PermissionCode.SECURITY_READ,
       PermissionCode.LOGS_READ,
       PermissionCode.SESSIONS_READ,
+      PermissionCode.ASSISTANT_READ,
+      PermissionCode.ASSISTANT_ASK,
     ],
   },
   [EmployeeRoleCode.VIEWER]: {
@@ -130,6 +140,8 @@ const roleDefinitions: Record<
       PermissionCode.ANALYTICS_READ,
       PermissionCode.TRANSACTIONS_READ,
       PermissionCode.SESSIONS_READ,
+      PermissionCode.ASSISTANT_READ,
+      PermissionCode.ASSISTANT_ASK,
     ],
   },
 };

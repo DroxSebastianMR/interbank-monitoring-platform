@@ -19,7 +19,6 @@ import type { LoginHelpTopic } from "@/src/modules/auth/components/LoginHelpShee
 import { LoginSubmitButton } from "@/src/modules/auth/components/LoginSubmitButton";
 import { useAuthAccessibility } from "@/src/modules/auth/hooks/useAuthAccessibility";
 import { useDeviceLogin } from "@/src/modules/auth/hooks/useDeviceLogin";
-import { ScreenLoader } from "@/src/modules/system/ui/components/ScreenLoader";
 import { BANKING_COLORS } from "@/src/shared/theme/banking.theme";
 
 export function DeviceLoginScreen() {
@@ -29,10 +28,13 @@ export function DeviceLoginScreen() {
     loading,
     passwordMode,
     biometric,
+    biometricLabel,
     pendingEnrollment,
+    sessionRecoveryNeeded,
     isValid,
     setPassword,
     setPasswordMode,
+    handleBeginBiometricSetup,
     handleDeviceLogin,
     handleBiometricLogin,
     handleToggleBiometrics,
@@ -69,6 +71,17 @@ export function DeviceLoginScreen() {
     >
       {passwordMode ? (
         <>
+          {pendingEnrollment ? (
+            <View style={styles.enrollmentNotice}>
+              <Text
+                style={styles.enrollmentTitle}
+              >{`Activando ${biometricLabel} · paso 1 de 2`}</Text>
+              <Text style={styles.enrollmentBody}>
+                Ingresa tu contraseña. Después, tu teléfono te pedirá confirmar
+                tu identidad y guardaremos el acceso protegido.
+              </Text>
+            </View>
+          ) : null}
           <AuthInput
             variant="login"
             label="Contraseña"
@@ -97,6 +110,23 @@ export function DeviceLoginScreen() {
             loading={loading}
             reduceTransparency={reduceTransparency}
           />
+          {sessionRecoveryNeeded ? (
+            <View style={styles.recoveryNotice}>
+              <Text style={styles.recoveryText}>
+                No pudimos validar este acceso. Si la sesión del dispositivo
+                venció, vuelve a ingresar con tu DNI, correo y contraseña.
+              </Text>
+              <TouchableOpacity
+                onPress={() => void handleUseAnotherAccount()}
+                accessibilityRole="button"
+                style={styles.recoveryButton}
+              >
+                <Text style={styles.recoveryButtonText}>
+                  Ingresar con todos mis datos
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           {biometric.kind !== BiometricKind.NONE ? (
             <DeviceBiometricControl
               kind={biometric.kind}
@@ -106,7 +136,11 @@ export function DeviceLoginScreen() {
               checking={biometric.checking}
               pendingEnrollment={pendingEnrollment}
               reduceTransparency={reduceTransparency}
-              onToggle={(value) => void handleToggleBiometrics(value)}
+              onToggle={(value) =>
+                value
+                  ? openHelp("biometric")
+                  : void handleToggleBiometrics(false)
+              }
             />
           ) : null}
           {faceId && biometric.enabled ? (
@@ -145,8 +179,16 @@ export function DeviceLoginScreen() {
               biometric.enabled ? "Ingresar con Face ID" : "Activar Face ID"
             }
             icon={<ScanFace size={24} color="#FFFFFF" />}
-            onPress={() => void handleBiometricLogin()}
-            disabled={loading || biometric.checking || !biometric.available}
+            onPress={() =>
+              biometric.enabled
+                ? void handleBiometricLogin()
+                : openHelp("biometric")
+            }
+            disabled={
+              loading ||
+              biometric.checking ||
+              (biometric.enabled && !biometric.available)
+            }
             loading={loading}
             reduceTransparency={reduceTransparency}
           />
@@ -195,8 +237,10 @@ export function DeviceLoginScreen() {
         onSelect={setHelpTopic}
         onClose={() => setHelpVisible(false)}
         reduceMotion={reduceMotion}
+        biometricLabel={biometricLabel}
+        biometricAvailable={biometric.available}
+        onBiometricSetup={handleBeginBiometricSetup}
       />
-      <ScreenLoader visible={loading} />
     </DeviceLoginScaffold>
   );
 }
@@ -250,6 +294,43 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   footer: { marginTop: "auto", paddingTop: 20 },
+  enrollmentNotice: {
+    backgroundColor: "#EAF6EF",
+    borderColor: "#CDE8D6",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+  },
+  enrollmentTitle: {
+    color: BANKING_COLORS.greenDeep,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  enrollmentBody: {
+    color: "#51685B",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 5,
+  },
+  recoveryNotice: {
+    backgroundColor: "#F2F6F3",
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 12,
+  },
+  recoveryText: { color: "#34483B", fontSize: 12, lineHeight: 18 },
+  recoveryButton: {
+    alignSelf: "flex-start",
+    minHeight: 44,
+    justifyContent: "center",
+    marginTop: 6,
+  },
+  recoveryButtonText: {
+    color: BANKING_COLORS.greenDeep,
+    fontWeight: "700",
+    fontSize: 13,
+  },
   anotherAccount: { fontSize: 12, color: "#65786B", textAlign: "center" },
   version: {
     marginTop: 12,

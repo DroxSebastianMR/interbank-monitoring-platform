@@ -26,6 +26,7 @@ export function useDeviceLogin() {
   const [loading, setLoading] = useState(false);
   const [passwordMode, setPasswordMode] = useState(Platform.OS !== "ios");
   const [pendingEnrollment, setPendingEnrollment] = useState(false);
+  const [sessionRecoveryNeeded, setSessionRecoveryNeeded] = useState(false);
   const [biometric, setBiometric] = useState({
     kind:
       Platform.OS === "ios"
@@ -46,25 +47,33 @@ export function useDeviceLogin() {
     if (submitting.current) return;
     try {
       const state = await getDeviceBiometricState();
-      if (mounted.current) setBiometric({ ...state, checking: false });
+      if (mounted.current) {
+        setBiometric({ ...state, checking: false });
+        if (Platform.OS === "ios" && (!state.available || !state.enabled)) {
+          setPasswordMode(true);
+        }
+      }
     } catch {
-      if (mounted.current)
+      if (mounted.current) {
         setBiometric((current) => ({
           ...current,
           available: false,
           enabled: false,
           checking: false,
         }));
+        if (Platform.OS === "ios") setPasswordMode(true);
+      }
     }
   }, []);
 
   useEffect(() => {
     mounted.current = true;
-    void refreshBiometrics();
+    const initialCheck = setTimeout(() => void refreshBiometrics(), 0);
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") void refreshBiometrics();
     });
     return () => {
+      clearTimeout(initialCheck);
       mounted.current = false;
       subscription.remove();
     };
@@ -83,6 +92,7 @@ export function useDeviceLogin() {
         password,
         enableBiometrics: pendingEnrollment,
       });
+      setSessionRecoveryNeeded(false);
       if (result.biometricError)
         show(resolveAuthErrorMessage(new Error(result.biometricError)), "info");
       else if (result.biometricsActivated)
@@ -91,6 +101,16 @@ export function useDeviceLogin() {
           "success",
         );
     } catch (error) {
+      if (
+        (error instanceof Error &&
+          error.message === "DEVICE_SESSION_NOT_FOUND") ||
+        (typeof error === "object" &&
+          error !== null &&
+          "type" in error &&
+          error.type === "UNAUTHORIZED")
+      ) {
+        setSessionRecoveryNeeded(true);
+      }
       show(resolveAuthErrorMessage(error), "error");
     } finally {
       submitting.current = false;
@@ -101,7 +121,7 @@ export function useDeviceLogin() {
     }
   };
 
-  const handleEnableBiometrics = () => {
+  const handleBeginBiometricSetup = () => {
     if (submitting.current || biometric.checking) return;
     if (!biometric.available) {
       show(
@@ -110,26 +130,14 @@ export function useDeviceLogin() {
       );
       return;
     }
-    Alert.alert(
-      `Activar ${biometricLabel}`,
-      "Después de validar tu contraseña, guardaremos una credencial de acceso cifrada y protegida por la biometría de este teléfono.",
-      [
-        { text: "Ahora no", style: "cancel" },
-        {
-          text: "Activar",
-          onPress: () => {
-            setPendingEnrollment(true);
-            setPasswordMode(true);
-          },
-        },
-      ],
-    );
+    setPendingEnrollment(true);
+    setPasswordMode(true);
   };
 
   const handleBiometricLogin = async (): Promise<void> => {
     if (submitting.current || biometric.checking) return;
     if (!biometric.enabled) {
-      handleEnableBiometrics();
+      handleBeginBiometricSetup();
       return;
     }
     submitting.current = true;
@@ -154,7 +162,7 @@ export function useDeviceLogin() {
   const handleToggleBiometrics = async (enabled: boolean): Promise<void> => {
     if (submitting.current) return;
     if (enabled) {
-      handleEnableBiometrics();
+      handleBeginBiometricSetup();
       return;
     }
     if (pendingEnrollment) {
@@ -224,9 +232,11 @@ export function useDeviceLogin() {
     biometric,
     biometricLabel,
     pendingEnrollment,
+    sessionRecoveryNeeded,
     isValid: password.length >= 8,
     setPassword,
     setPasswordMode,
+    handleBeginBiometricSetup,
     handleDeviceLogin,
     handleBiometricLogin,
     handleToggleBiometrics,

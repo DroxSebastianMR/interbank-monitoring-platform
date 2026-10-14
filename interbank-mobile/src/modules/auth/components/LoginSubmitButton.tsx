@@ -1,6 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { BANKING_COLORS } from "@/src/shared/theme/banking.theme";
 
@@ -61,8 +67,10 @@ export function LoginSubmitButton({
           </>
         ) : null}
         <View style={styles.content}>
-          {icon}
-          <Text style={styles.title}>{loading ? "Ingresando…" : title}</Text>
+          {loading ? <ActivityIndicator color="#FFFFFF" size="small" /> : icon}
+          <Text style={styles.title}>
+            {loading ? "Verificando acceso…" : title}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>

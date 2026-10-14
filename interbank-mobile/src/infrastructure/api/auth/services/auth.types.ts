@@ -1,4 +1,16 @@
-export type LoginMode = "FIRST_LOGIN" | "DEVICE_LOGIN";
+export type LoginMode = "FIRST_LOGIN" | "DEVICE_LOGIN" | "BIOMETRIC_LOGIN";
+
+export type BiometricEnrollmentRequest = DeviceLoginRequest;
+
+export interface BiometricCredentialRequest {
+  credential: string;
+  deviceId: string;
+}
+
+export interface BiometricCredentialResponse {
+  credential: string;
+  expiresIn: number;
+}
 
 export interface FirstLoginRequest {
   documentNumber: string;

@@ -25,24 +25,25 @@ enum EmployeeStatus {
 }
 
 model Employee {
-  id                  String         @id @default(uuid()) @db.Uuid
-  employeeCode        String         @unique @map("employee_code") @db.VarChar(30)
-  corporateEmail      String         @unique @map("corporate_email") @db.VarChar(254)
-  passwordHash        String         @map("password_hash") @db.VarChar(255)
-  firstName           String         @map("first_name") @db.VarChar(80)
-  lastName            String         @map("last_name") @db.VarChar(120)
-  jobTitle            String?        @map("job_title") @db.VarChar(120)
-  department          String?        @db.VarChar(120)
-  status              EmployeeStatus @default(ACTIVE)
-  failedLoginAttempts Int            @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime?      @map("locked_until")
-  lastLoginAt         DateTime?      @map("last_login_at")
-  passwordChangedAt   DateTime       @default(now()) @map("password_changed_at")
-  createdAt           DateTime       @default(now()) @map("created_at")
-  updatedAt           DateTime       @updatedAt @map("updated_at")
-  roles               EmployeeRole[]
-  sessions            AuthSession[]
-  auditLogs           AuditLog[]
+  id                     String                  @id @default(uuid()) @db.Uuid
+  employeeCode           String                  @unique @map("employee_code") @db.VarChar(30)
+  corporateEmail         String                  @unique @map("corporate_email") @db.VarChar(254)
+  passwordHash           String                  @map("password_hash") @db.VarChar(255)
+  firstName              String                  @map("first_name") @db.VarChar(80)
+  lastName               String                  @map("last_name") @db.VarChar(120)
+  jobTitle               String?                 @map("job_title") @db.VarChar(120)
+  department             String?                 @db.VarChar(120)
+  status                 EmployeeStatus          @default(ACTIVE)
+  failedLoginAttempts    Int                     @default(0) @map("failed_login_attempts")
+  lockedUntil            DateTime?               @map("locked_until")
+  lastLoginAt            DateTime?               @map("last_login_at")
+  passwordChangedAt      DateTime                @default(now()) @map("password_changed_at")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  roles                  EmployeeRole[]
+  sessions               AuthSession[]
+  auditLogs              AuditLog[]
+  assistantConversations AssistantConversation[]
 
   @@index([status])
   @@map("employees")
@@ -218,5 +219,55 @@ model Alert {
   incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
   @@index([incidentId, createdAt])
+  @@schema("monitoring")
+}
+
+model AssistantConversation {
+  id         String             @id @default(uuid()) @db.Uuid
+  employeeId String             @map("employee_id") @db.Uuid
+  title      String             @db.VarChar(120)
+  archivedAt DateTime?          @map("archived_at")
+  deletedAt  DateTime?          @map("deleted_at")
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+  employee   Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  messages   AssistantMessage[]
+
+  @@index([employeeId, deletedAt, updatedAt])
+  @@map("assistant_conversations")
+  @@schema("monitoring")
+}
+
+model AssistantMessage {
+  id             String                @id @default(uuid()) @db.Uuid
+  conversationId String                @map("conversation_id") @db.Uuid
+  role           String                @db.VarChar(20)
+  content        String                @db.Text
+  provider       String?               @db.VarChar(40)
+  evidence       Json?
+  feedback       String?               @db.VarChar(20)
+  createdAt      DateTime              @default(now()) @map("created_at")
+  conversation   AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  run            AssistantRun?
+
+  @@index([conversationId, createdAt, id])
+  @@map("assistant_messages")
+  @@schema("monitoring")
+}
+
+model AssistantRun {
+  id               String           @id @default(uuid()) @db.Uuid
+  messageId        String           @unique @map("message_id") @db.Uuid
+  provider         String           @db.VarChar(40)
+  model            String?          @db.VarChar(120)
+  status           String           @db.VarChar(20)
+  latencyMs        Int              @map("latency_ms")
+  promptTokens     Int?             @map("prompt_tokens")
+  completionTokens Int?             @map("completion_tokens")
+  promptVersion    String           @map("prompt_version") @db.VarChar(30)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  message          AssistantMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("assistant_runs")
   @@schema("monitoring")
 }

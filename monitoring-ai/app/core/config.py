@@ -9,7 +9,10 @@ class Settings(BaseSettings):
     model_mode: Literal["baseline", "isolation_forest"] = "baseline"
     model_path: str = "app/models/isolation_forest.joblib"
     log_level: str = "INFO"
-    assistant_provider: Literal["none", "openai", "gemini"] = "none"
+    assistant_provider: Literal["none", "openai", "gemini", "openrouter"] = "none"
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "openai/gpt-4.1-mini"
+    ai_internal_token: str | None = None
     openai_api_key: str | None = None
     openai_model: str = "gpt-4.1-mini"
     gemini_api_key: str | None = None

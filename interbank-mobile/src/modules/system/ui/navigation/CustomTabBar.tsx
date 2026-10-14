@@ -8,6 +8,7 @@ import {
 } from "lucide-react-native";
 import React from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LiquidGlassSurface } from "@/src/shared/components/LiquidGlassSurface";
 import {
@@ -25,6 +26,7 @@ const TABS = {
 
 export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const containerWidth = Math.min(width, 430);
   const mainRoutes = state.routes.filter((route) => route.name !== "QrPayment");
   const qrRoute = state.routes.find((route) => route.name === "QrPayment");
@@ -32,8 +34,12 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   return (
     <View
       pointerEvents="box-none"
-      className="absolute bottom-5 flex-row items-center gap-2.5 px-4"
-      style={{ left: (width - containerWidth) / 2, width: containerWidth }}
+      className="absolute flex-row items-center gap-2.5 px-4"
+      style={{
+        left: (width - containerWidth) / 2,
+        width: containerWidth,
+        bottom: Math.max(insets.bottom, 12),
+      }}
     >
       <LiquidGlassSurface
         className="h-[66px] flex-1 flex-row items-center rounded-full p-1"
@@ -56,11 +62,17 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
           return (
             <Pressable
-              accessibilityRole="button"
+              accessibilityRole="tab"
               accessibilityState={{ selected: focused }}
+              accessibilityLabel={config.label}
               key={route.key}
               onPress={() => {
-                if (focused) return;
+                const event = navigation.emit({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+                if (focused || event.defaultPrevented) return;
                 void triggerHaptic(HapticType.LIGHT);
                 navigation.navigate(route.name);
               }}
@@ -83,9 +95,18 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
       <Pressable
         accessibilityLabel="Escanear QR"
-        accessibilityRole="button"
+        accessibilityRole="tab"
+        accessibilityState={{
+          selected: state.routes[state.index]?.name === "QrPayment",
+        }}
         onPress={() => {
           if (!qrRoute) return;
+          const event = navigation.emit({
+            type: "tabPress",
+            target: qrRoute.key,
+            canPreventDefault: true,
+          });
+          if (event.defaultPrevented) return;
           void triggerHaptic(HapticType.MEDIUM);
           navigation.navigate(qrRoute.name);
         }}

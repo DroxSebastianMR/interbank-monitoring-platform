@@ -1,6 +1,7 @@
 import {
   Check,
   ChevronRight,
+  ScanFace,
   KeyRound,
   Mail,
   ShieldCheck,
@@ -30,7 +31,8 @@ export type LoginHelpTopic =
   | "registration"
   | "document"
   | "qr"
-  | "whatsapp";
+  | "whatsapp"
+  | "biometric";
 
 const CONTENT: Record<LoginHelpTopic, { title: string; description: string }> =
   {
@@ -71,6 +73,11 @@ const CONTENT: Record<LoginHelpTopic, { title: string; description: string }> =
       description:
         "Esta función estará disponible próximamente. Por ahora, ingresa a la app para usar los servicios habilitados.",
     },
+    biometric: {
+      title: "Acceso biométrico",
+      description:
+        "Actívalo en este dispositivo para ingresar de forma rápida y segura la próxima vez.",
+    },
   };
 
 interface Props {
@@ -79,6 +86,9 @@ interface Props {
   onSelect: (topic: LoginHelpTopic) => void;
   onClose: () => void;
   reduceMotion: boolean;
+  biometricLabel?: string;
+  biometricAvailable?: boolean;
+  onBiometricSetup?: () => void;
 }
 
 export function LoginHelpSheet({
@@ -87,6 +97,9 @@ export function LoginHelpSheet({
   onSelect,
   onClose,
   reduceMotion,
+  biometricLabel = "Face ID",
+  biometricAvailable = false,
+  onBiometricSetup,
 }: Props) {
   const insets = useSafeAreaInsets();
   const titleRef = useRef<Text>(null);
@@ -163,13 +176,59 @@ export function LoginHelpSheet({
                   onPress={() => onSelect("username")}
                 />
                 {topic === "menu" ? (
-                  <HelpOption
-                    title="Crear usuario"
-                    subtitle="Información sobre el registro"
-                    icon={<UserRound size={21} color="#008D3B" />}
-                    onPress={() => onSelect("registration")}
-                  />
+                  <>
+                    {onBiometricSetup ? (
+                      <HelpOption
+                        title={`Activar ${biometricLabel}`}
+                        subtitle="Configura el acceso de este dispositivo"
+                        icon={<ScanFace size={21} color="#008D3B" />}
+                        onPress={() => onSelect("biometric")}
+                      />
+                    ) : null}
+                    <HelpOption
+                      title="Crear usuario"
+                      subtitle="Información sobre el registro"
+                      icon={<UserRound size={21} color="#008D3B" />}
+                      onPress={() => onSelect("registration")}
+                    />
+                  </>
                 ) : null}
+              </View>
+            ) : topic === "biometric" ? (
+              <View style={styles.steps}>
+                <Step
+                  number="1"
+                  text="Confirma tu contraseña para verificar que eres tú."
+                />
+                <Step
+                  number="2"
+                  text={`El teléfono solicitará ${biometricLabel}. La app nunca recibe ni guarda tu rostro o huella.`}
+                />
+                <Step
+                  number="3"
+                  text="Guardaremos una credencial de este dispositivo en el servidor y una copia protegida en el teléfono."
+                />
+                {!biometricAvailable ? (
+                  <Text style={styles.unavailable}>
+                    {biometricLabel === "Face ID"
+                      ? "Face ID no está disponible aquí. En iPhone necesitas una build de desarrollo y tener Face ID configurado en Ajustes. Puedes seguir ingresando con contraseña."
+                      : "La huella digital no está disponible aquí. Configúrala en los ajustes del teléfono o ingresa con contraseña."}
+                  </Text>
+                ) : (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      onClose();
+                      onBiometricSetup?.();
+                    }}
+                    accessibilityRole="button"
+                    style={styles.done}
+                  >
+                    <Text
+                      style={styles.doneText}
+                    >{`Continuar con ${biometricLabel}`}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : topic === "document" ? (
               <View style={styles.document}>
@@ -177,7 +236,7 @@ export function LoginHelpSheet({
                 <Check size={20} color="#008D3B" />
               </View>
             ) : null}
-            {!options ? (
+            {!options && topic !== "biometric" ? (
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={onClose}
@@ -191,6 +250,17 @@ export function LoginHelpSheet({
         </View>
       </View>
     </Modal>
+  );
+}
+
+function Step({ number, text }: { number: string; text: string }) {
+  return (
+    <View style={styles.step}>
+      <View style={styles.stepNumber}>
+        <Text style={styles.stepNumberText}>{number}</Text>
+      </View>
+      <Text style={styles.stepText}>{text}</Text>
+    </View>
   );
 }
 
@@ -319,4 +389,17 @@ const styles = StyleSheet.create({
     marginTop: 26,
   },
   doneText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  steps: { gap: 16, marginTop: 24 },
+  step: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#DFF3E7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepNumberText: { color: "#007D36", fontWeight: "700" },
+  stepText: { flex: 1, color: "#294535", fontSize: 14, lineHeight: 21 },
+  unavailable: { color: "#65786B", fontSize: 13, lineHeight: 20, marginTop: 8 },
 });

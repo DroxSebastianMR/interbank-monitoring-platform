@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { AccessibilityInfo } from "react-native";
 
 import { useAuth } from "@/src/modules/auth/context/AuthProvider";
 import type { LoginCredentials } from "@/src/modules/auth/types/auth.types";
@@ -18,9 +19,7 @@ export function useLogin() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const submitting = useRef(false);
-  const [touched, setTouched] = useState<
-    Partial<Record<keyof LoginCredentials, boolean>>
-  >({});
+  const [submitted, setSubmitted] = useState(false);
 
   const errors = {
     documentNumber: /^\d{8}$/.test(form.documentNumber.trim())
@@ -35,10 +34,6 @@ export function useLogin() {
         : "Tu contraseña debe tener al menos 8 caracteres.",
   };
   const isValid = !errors.documentNumber && !errors.email && !errors.password;
-  const onBlur = (field: keyof LoginCredentials): void => {
-    setTouched((current) => ({ ...current, [field]: true }));
-  };
-
   const onChange = (field: keyof LoginCredentials, value: string): void => {
     setForm((current) => ({ ...current, [field]: value }));
   };
@@ -46,8 +41,10 @@ export function useLogin() {
   const handleLogin = async (): Promise<void> => {
     if (submitting.current) return;
     if (!isValid) {
-      setTouched({ documentNumber: true, email: true, password: true });
-      show("Revisa tus datos para continuar", "error");
+      setSubmitted(true);
+      AccessibilityInfo.announceForAccessibility(
+        "Revisa los campos marcados antes de continuar",
+      );
       return;
     }
     try {
@@ -63,9 +60,9 @@ export function useLogin() {
   };
 
   const fieldErrors = {
-    documentNumber: touched.documentNumber ? errors.documentNumber : undefined,
-    email: touched.email ? errors.email : undefined,
-    password: touched.password ? errors.password : undefined,
+    documentNumber: submitted ? errors.documentNumber : undefined,
+    email: submitted ? errors.email : undefined,
+    password: submitted ? errors.password : undefined,
   };
-  return { form, loading, isValid, fieldErrors, onChange, onBlur, handleLogin };
+  return { form, loading, fieldErrors, onChange, handleLogin };
 }

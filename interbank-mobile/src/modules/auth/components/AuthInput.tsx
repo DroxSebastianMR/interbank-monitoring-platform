@@ -15,6 +15,7 @@ type Props = Omit<TextInputProps, "secureTextEntry"> & {
   secure?: boolean;
   icon?: ReactNode;
   error?: string;
+  showErrorMessage?: boolean;
   variant?: "default" | "login";
   inputRef?: Ref<TextInput>;
 };
@@ -29,6 +30,7 @@ export const AuthInput = ({
   onFocus,
   onBlur,
   inputRef,
+  showErrorMessage = true,
   ...rest
 }: Props) => {
   const [hidden, setHidden] = useState(secure);
@@ -92,7 +94,7 @@ export const AuthInput = ({
           </Pressable>
         ) : null}
       </View>
-      {error ? (
+      {error && showErrorMessage ? (
         <Text
           accessibilityLiveRegion="polite"
           className="mt-1.5 text-xs text-[#b42318]"
