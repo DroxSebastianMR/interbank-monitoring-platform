@@ -1,0 +1,457 @@
+// interbank-app: app schema
+Enum "app"."UserStatus" {
+  "ACTIVE"
+  "LOCKED"
+  "DISABLED"
+}
+
+Enum "app"."Currency" {
+  "PEN"
+  "USD"
+}
+
+Enum "app"."AccountType" {
+  "SAVINGS"
+  "CHECKING"
+  "CTS"
+  "TERM_DEPOSIT"
+}
+
+Enum "app"."AccountStatus" {
+  "ACTIVE"
+  "BLOCKED"
+  "CLOSED"
+}
+
+Enum "app"."TransferKind" {
+  "OWN_ACCOUNTS"
+  "THIRD_PARTY"
+}
+
+Enum "app"."CardKind" {
+  "DEBIT"
+  "CREDIT"
+}
+
+Enum "app"."CardStatus" {
+  "ACTIVE"
+  "BLOCKED"
+  "EXPIRED"
+  "CANCELLED"
+}
+
+Enum "app"."CardNetwork" {
+  "VISA"
+  "MASTERCARD"
+  "AMEX"
+}
+
+Enum "app"."CardFormat" {
+  "PHYSICAL"
+  "DIGITAL"
+}
+
+Enum "app"."TransactionType" {
+  "DEPOSIT"
+  "TRANSFER"
+  "SERVICE_PAYMENT"
+}
+
+Enum "app"."TransactionDirection" {
+  "CREDIT"
+  "DEBIT"
+}
+
+Enum "app"."TransactionStatus" {
+  "PENDING"
+  "COMPLETED"
+  "FAILED"
+  "REVERSED"
+}
+
+Enum "app"."ServiceProviderStatus" {
+  "ACTIVE"
+  "INACTIVE"
+  "MAINTENANCE"
+}
+
+Enum "app"."PaymentReferenceType" {
+  "CUSTOMER_CODE"
+  "SUPPLY_NUMBER"
+  "CONTRACT_NUMBER"
+  "DOCUMENT_NUMBER"
+  "PHONE_NUMBER"
+  "OTHER"
+}
+
+Enum "app"."ServiceDebtStatus" {
+  "PENDING"
+  "PAID"
+  "EXPIRED"
+  "CANCELLED"
+}
+
+Table "app"."users" {
+  "id" UUID [not null]
+  "documentNumber" VARCHAR(8) [not null]
+  "email" VARCHAR(254) [not null]
+  "passwordHash" TEXT [not null]
+  "firstName" VARCHAR(100)
+  "lastName" VARCHAR(100)
+  "status" app.UserStatus [not null, default: 'ACTIVE']
+  "lastLoginAt" TIMESTAMP(3)
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "users_pkey"]
+    documentNumber [unique, name: "users_documentNumber_key"]
+    email [unique, name: "users_email_key"]
+    (documentNumber, email) [name: "users_documentNumber_email_idx"]
+  }
+}
+
+Table "app"."accounts" {
+  "id" UUID [not null]
+  "userId" UUID [not null]
+  "displayName" VARCHAR(100) [not null]
+  "accountNumber" VARCHAR(20) [not null]
+  "balance" DECIMAL(14,2) [not null, default: 0]
+  "currency" app.Currency [not null, default: 'PEN']
+  "type" app.AccountType [not null, default: 'SAVINGS']
+  "accountTypeId" UUID [not null, default: '50000000-0000-4000-8000-000000000001']
+  "status" app.AccountStatus [not null, default: 'ACTIVE']
+  "cci" CHAR(20) [not null]
+  "closedAt" TIMESTAMP(3)
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "accounts_pkey"]
+    accountNumber [unique, name: "accounts_accountNumber_key"]
+    cci [unique, name: "accounts_cci_key"]
+    (userId, currency) [name: "accounts_userId_currency_idx"]
+    (userId, status, accountTypeId) [name: "accounts_userId_status_accountTypeId_idx"]
+    (id, userId) [unique, name: "accounts_id_userId_key"]
+  }
+}
+
+Table "app"."account_types" {
+  "id" UUID [not null]
+  "code" VARCHAR(40) [not null]
+  "name" VARCHAR(100) [not null]
+  "description" VARCHAR(300) [not null]
+  "type" app.AccountType [not null]
+  "supportedCurrencies" app.Currency[]
+  "allowsDebits" BOOLEAN [not null, default: true]
+  "isActive" BOOLEAN [not null, default: true]
+  "displayOrder" INTEGER [not null, default: 0]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "account_types_pkey"]
+    code [unique, name: "account_types_code_key"]
+    (isActive, displayOrder) [name: "account_types_isActive_displayOrder_idx"]
+    (id, type) [unique, name: "account_types_id_type_key"]
+  }
+}
+
+Table "app"."card_types" {
+  "id" UUID [not null]
+  "code" VARCHAR(40) [not null]
+  "name" VARCHAR(100) [not null]
+  "description" VARCHAR(300) [not null]
+  "kind" app.CardKind [not null]
+  "network" app.CardNetwork [not null]
+  "isActive" BOOLEAN [not null, default: true]
+  "displayOrder" INTEGER [not null, default: 0]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "card_types_pkey"]
+    code [unique, name: "card_types_code_key"]
+    (isActive, kind, displayOrder) [name: "card_types_isActive_kind_displayOrder_idx"]
+    (id, kind) [unique, name: "card_types_id_kind_key"]
+  }
+}
+
+Table "app"."cards" {
+  "id" UUID [not null]
+  "userId" UUID [not null]
+  "cardTypeId" UUID [not null]
+  "kind" app.CardKind [not null]
+  "lastFour" CHAR(4) [not null]
+  "displayName" VARCHAR(100) [not null]
+  "status" app.CardStatus [not null, default: 'ACTIVE']
+  "format" app.CardFormat [not null, default: 'PHYSICAL']
+  "expiresAt" DATE [not null]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "cards_pkey"]
+    (userId, status, kind) [name: "cards_userId_status_kind_idx"]
+    (id, userId, kind) [unique, name: "cards_id_userId_kind_key"]
+    (id, kind) [unique, name: "cards_id_kind_key"]
+  }
+}
+
+Table "app"."account_cards" {
+  "accountId" UUID [not null]
+  "cardId" UUID [not null]
+  "userId" UUID [not null]
+  "kind" app.CardKind [not null, default: 'DEBIT']
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (accountId, cardId) [pk, name: "account_cards_pkey"]
+    cardId [name: "account_cards_cardId_idx"]
+  }
+}
+
+Table "app"."card_credit_balances" {
+  "cardId" UUID [not null]
+  "currency" app.Currency [not null]
+  "kind" app.CardKind [not null, default: 'CREDIT']
+  "creditLimit" DECIMAL(14,2) [not null]
+  "outstandingBalance" DECIMAL(14,2) [not null, default: 0]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    (cardId, currency) [pk, name: "card_credit_balances_pkey"]
+  }
+}
+
+Table "app"."transactions" {
+  "id" UUID [not null]
+  "accountId" UUID [not null]
+  "transferId" UUID
+  "type" app.TransactionType [not null]
+  "direction" app.TransactionDirection [not null]
+  "status" app.TransactionStatus [not null, default: 'COMPLETED']
+  "amount" DECIMAL(14,2) [not null]
+  "currency" app.Currency [not null]
+  "description" VARCHAR(160) [not null]
+  "reference" VARCHAR(80)
+  "occurredAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "transactions_pkey"]
+    (accountId, occurredAt, id) [name: "transactions_accountId_occurredAt_id_idx"]
+    transferId [name: "transactions_transferId_idx"]
+    (transferId, direction) [unique, name: "transactions_transferId_direction_key"]
+  }
+}
+
+Table "app"."transfers" {
+  "id" UUID [not null]
+  "sourceAccountId" UUID [not null]
+  "destinationAccountId" UUID [not null]
+  "userId" UUID [not null]
+  "kind" app.TransferKind [not null]
+  "operationNumber" VARCHAR(32) [not null]
+  "idempotencyKey" VARCHAR(80) [not null]
+  "requestFingerprint" CHAR(64) [not null]
+  "amount" DECIMAL(14,2) [not null]
+  "currency" app.Currency [not null]
+  "status" app.TransactionStatus [not null, default: 'COMPLETED']
+  "description" VARCHAR(160)
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "completedAt" TIMESTAMP(3)
+
+  Indexes {
+    id [pk, name: "transfers_pkey"]
+    operationNumber [unique, name: "transfers_operationNumber_key"]
+    (userId, createdAt, id) [name: "transfers_userId_createdAt_id_idx"]
+    (sourceAccountId, createdAt, id) [name: "transfers_sourceAccountId_createdAt_id_idx"]
+    (destinationAccountId, createdAt, id) [name: "transfers_destinationAccountId_createdAt_id_idx"]
+    (userId, idempotencyKey) [unique, name: "transfers_userId_idempotencyKey_key"]
+  }
+}
+
+Table "app"."service_payments" {
+  "id" UUID [not null]
+  "userId" UUID [not null]
+  "accountId" UUID [not null]
+  "serviceAgreementId" UUID [not null]
+  "debtId" UUID
+  "transactionId" UUID [not null]
+  "operationNumber" VARCHAR(32) [not null]
+  "idempotencyKey" VARCHAR(80) [not null]
+  "requestFingerprint" CHAR(64) [not null]
+  "customerReference" VARCHAR(80) [not null]
+  "providerNameSnapshot" VARCHAR(120) [not null]
+  "serviceNameSnapshot" VARCHAR(120) [not null]
+  "amount" DECIMAL(14,2) [not null]
+  "commissionAmount" DECIMAL(14,2) [not null, default: 0]
+  "totalAmount" DECIMAL(14,2) [not null]
+  "currency" app.Currency [not null]
+  "status" app.TransactionStatus [not null, default: 'COMPLETED']
+  "paidAt" TIMESTAMP(3)
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "service_payments_pkey"]
+    transactionId [unique, name: "service_payments_transactionId_key"]
+    operationNumber [unique, name: "service_payments_operationNumber_key"]
+    (userId, createdAt) [name: "service_payments_userId_createdAt_idx"]
+    (accountId, createdAt) [name: "service_payments_accountId_createdAt_idx"]
+    (serviceAgreementId, customerReference) [name: "service_payments_serviceAgreementId_customerReference_idx"]
+    debtId [name: "service_payments_debtId_idx"]
+    (userId, idempotencyKey) [unique, name: "service_payments_userId_idempotencyKey_key"]
+  }
+}
+
+Table "app"."service_categories" {
+  "id" UUID [not null]
+  "code" VARCHAR(40) [not null]
+  "name" VARCHAR(80) [not null]
+  "description" VARCHAR(240)
+  "iconKey" VARCHAR(60) [not null]
+  "displayOrder" INTEGER [not null, default: 0]
+  "isActive" BOOLEAN [not null, default: true]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "service_categories_pkey"]
+    code [unique, name: "service_categories_code_key"]
+    (isActive, displayOrder) [name: "service_categories_isActive_displayOrder_idx"]
+  }
+}
+
+Table "app"."service_providers" {
+  "id" UUID [not null]
+  "categoryId" UUID [not null]
+  "code" VARCHAR(50) [not null]
+  "name" VARCHAR(120) [not null]
+  "shortName" VARCHAR(60) [not null]
+  "legalName" VARCHAR(180)
+  "logoUrl" VARCHAR(500)
+  "searchAliases" "TEXT[]" [default: `ARRAY[]::TEXT[]`]
+  "displayOrder" INTEGER [not null, default: 0]
+  "status" app.ServiceProviderStatus [not null, default: 'ACTIVE']
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "service_providers_pkey"]
+    code [unique, name: "service_providers_code_key"]
+    (categoryId, status, displayOrder) [name: "service_providers_categoryId_status_displayOrder_idx"]
+    (status, name) [name: "service_providers_status_name_idx"]
+  }
+}
+
+Table "app"."service_agreements" {
+  "id" UUID [not null]
+  "providerId" UUID [not null]
+  "code" VARCHAR(60) [not null]
+  "name" VARCHAR(120) [not null]
+  "description" VARCHAR(240)
+  "referenceLabel" VARCHAR(80) [not null]
+  "referenceType" app.PaymentReferenceType [not null]
+  "referencePattern" VARCHAR(160)
+  "referenceMinLength" INTEGER [not null, default: 1]
+  "referenceMaxLength" INTEGER [not null, default: 80]
+  "supportsDebtInquiry" BOOLEAN [not null, default: true]
+  "supportsPartialPayment" BOOLEAN [not null, default: false]
+  "currency" app.Currency [not null, default: 'PEN']
+  "commissionAmount" DECIMAL(14,2) [not null, default: 0]
+  "minimumAmount" DECIMAL(14,2)
+  "maximumAmount" DECIMAL(14,2)
+  "isActive" BOOLEAN [not null, default: true]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "service_agreements_pkey"]
+    code [unique, name: "service_agreements_code_key"]
+    (providerId, isActive, name) [name: "service_agreements_providerId_isActive_name_idx"]
+  }
+}
+
+Table "app"."service_debts" {
+  "id" UUID [not null]
+  "serviceAgreementId" UUID [not null]
+  "customerReference" VARCHAR(80) [not null]
+  "invoiceNumber" VARCHAR(80) [not null]
+  "description" VARCHAR(160) [not null]
+  "amount" DECIMAL(14,2) [not null]
+  "minimumPaymentAmount" DECIMAL(14,2)
+  "currency" app.Currency [not null]
+  "issuedAt" TIMESTAMP(3) [not null]
+  "dueDate" TIMESTAMP(3) [not null]
+  "status" app.ServiceDebtStatus [not null, default: 'PENDING']
+  "paidAt" TIMESTAMP(3)
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "service_debts_pkey"]
+    (serviceAgreementId, customerReference, status, dueDate) [name: "service_debts_serviceAgreementId_customerReference_status_d_idx"]
+    (serviceAgreementId, invoiceNumber) [unique, name: "service_debts_serviceAgreementId_invoiceNumber_key"]
+  }
+}
+
+Table "app"."saved_service_payments" {
+  "id" UUID [not null]
+  "userId" UUID [not null]
+  "serviceAgreementId" UUID [not null]
+  "alias" VARCHAR(80) [not null]
+  "customerReference" VARCHAR(80) [not null]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "saved_service_payments_pkey"]
+    (userId, updatedAt) [name: "saved_service_payments_userId_updatedAt_idx"]
+    (userId, serviceAgreementId, customerReference) [unique, name: "saved_service_payments_userId_serviceAgreementId_customerRe_key"]
+  }
+}
+
+Ref "accounts_userId_fkey":"app"."users"."id" <? "app"."accounts"."userId" [update: cascade, delete: cascade]
+
+Ref "accounts_accountTypeId_type_fkey":"app"."account_types".("id", "type") <? "app"."accounts".("accountTypeId", "type") [update: cascade, delete: restrict]
+
+Ref "cards_userId_fkey":"app"."users"."id" <? "app"."cards"."userId" [update: cascade, delete: restrict]
+
+Ref "cards_cardTypeId_kind_fkey":"app"."card_types".("id", "kind") <? "app"."cards".("cardTypeId", "kind") [update: cascade, delete: restrict]
+
+Ref "account_cards_accountId_userId_fkey":"app"."accounts".("id", "userId") <? "app"."account_cards".("accountId", "userId") [update: cascade, delete: restrict]
+
+Ref "account_cards_cardId_userId_kind_fkey":"app"."cards".("id", "userId", "kind") <? "app"."account_cards".("cardId", "userId", "kind") [update: cascade, delete: restrict]
+
+Ref "card_credit_balances_cardId_kind_fkey":"app"."cards".("id", "kind") <? "app"."card_credit_balances".("cardId", "kind") [update: cascade, delete: restrict]
+
+Ref "transactions_accountId_fkey":"app"."accounts"."id" <? "app"."transactions"."accountId" [update: cascade, delete: cascade]
+
+Ref "transactions_transferId_fkey":"app"."transfers"."id" ?<? "app"."transactions"."transferId" [update: cascade, delete: set null]
+
+Ref "transfers_sourceAccountId_userId_fkey":"app"."accounts".("id", "userId") <? "app"."transfers".("sourceAccountId", "userId") [update: cascade, delete: restrict]
+
+Ref "transfers_destinationAccountId_fkey":"app"."accounts"."id" <? "app"."transfers"."destinationAccountId" [update: cascade, delete: restrict]
+
+Ref "transfers_userId_fkey":"app"."users"."id" <? "app"."transfers"."userId" [update: cascade, delete: restrict]
+
+Ref "service_payments_userId_fkey":"app"."users"."id" <? "app"."service_payments"."userId" [update: cascade, delete: restrict]
+
+Ref "service_payments_accountId_fkey":"app"."accounts"."id" <? "app"."service_payments"."accountId" [update: cascade, delete: restrict]
+
+Ref "service_payments_serviceAgreementId_fkey":"app"."service_agreements"."id" <? "app"."service_payments"."serviceAgreementId" [update: cascade, delete: restrict]
+
+Ref "service_payments_debtId_fkey":"app"."service_debts"."id" ?<? "app"."service_payments"."debtId" [update: cascade, delete: set null]
+
+Ref "service_payments_transactionId_fkey":"app"."transactions"."id" <? "app"."service_payments"."transactionId" [update: cascade, delete: restrict]
+
+Ref "service_providers_categoryId_fkey":"app"."service_categories"."id" <? "app"."service_providers"."categoryId" [update: cascade, delete: restrict]
+
+Ref "service_agreements_providerId_fkey":"app"."service_providers"."id" <? "app"."service_agreements"."providerId" [update: cascade, delete: restrict]
+
+Ref "service_debts_serviceAgreementId_fkey":"app"."service_agreements"."id" <? "app"."service_debts"."serviceAgreementId" [update: cascade, delete: restrict]
+
+Ref "saved_service_payments_userId_fkey":"app"."users"."id" <? "app"."saved_service_payments"."userId" [update: cascade, delete: cascade]
+
+Ref "saved_service_payments_serviceAgreementId_fkey":"app"."service_agreements"."id" <? "app"."saved_service_payments"."serviceAgreementId" [update: cascade, delete: restrict]

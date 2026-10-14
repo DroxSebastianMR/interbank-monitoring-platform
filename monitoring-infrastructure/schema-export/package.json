@@ -1,0 +1,10 @@
+{
+  "name": "interbank-schema-export",
+  "private": true,
+  "scripts": {
+    "export": "node export.cjs"
+  },
+  "devDependencies": {
+    "@dbml/core": "10.3.1"
+  }
+}

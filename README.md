@@ -47,3 +47,5 @@ Los archivos `.env`, certificados, dependencias instaladas, builds, cachés y mo
 - Ningún secreto debe almacenarse en Git; se documenta solamente en archivos `.env.example` con placeholders.
 
 Más detalles en [docs/MONOREPO.md](docs/MONOREPO.md).
+
+Los esquemas de ambos backends se pueden explorar en [los diagramas DBML y PostgreSQL](docs/database-diagrams/README.md). El exportador reproducible toma como fuente los respectivos `prisma/schema.prisma`.

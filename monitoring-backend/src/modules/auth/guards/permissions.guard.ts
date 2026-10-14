@@ -15,7 +15,10 @@ export class PermissionsGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!required?.length) return true;
+    // Guarded controllers deny new routes until a permission is explicitly declared.
+    if (!required?.length) {
+      throw new ForbiddenException('La ruta no declara un permiso de acceso');
+    }
 
     const principal = context.switchToHttp().getRequest<AuthenticatedRequest>().user;
     const allowed =

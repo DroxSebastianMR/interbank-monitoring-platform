@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { EmployeeStatus, Prisma } from '@prisma/client';
 
-import { PrismaService } from '@/database/prisma/prisma.service';
+import { PrismaService } from '@/common/prisma/prisma.service';
 import { AuditAction } from '@/modules/auth/enums/audit-action.enum';
 import type { EmployeeAccessProfile, RequestMetadata } from '@/modules/auth/types/auth.types';
+import type { SessionDto } from '@/modules/auth/dto/auth-response.dto';
 
 const EMPLOYEE_ACCESS_INCLUDE = {
   roles: {
@@ -17,16 +18,23 @@ const EMPLOYEE_ACCESS_INCLUDE = {
   },
 } satisfies Prisma.EmployeeInclude;
 
+const EMPLOYEE_ACCESS_SELECT = {
+  id: true,
+  employeeCode: true,
+  corporateEmail: true,
+  firstName: true,
+  lastName: true,
+  jobTitle: true,
+  department: true,
+  lockedUntil: true,
+  roles: EMPLOYEE_ACCESS_INCLUDE.roles,
+} satisfies Prisma.EmployeeSelect;
+
 type EmployeeAccessRecord = Prisma.EmployeeGetPayload<{
-  include: typeof EMPLOYEE_ACCESS_INCLUDE;
+  select: typeof EMPLOYEE_ACCESS_SELECT;
 }>;
 
-type EmployeeLoginRecord = EmployeeAccessRecord & {
-  passwordHash: string;
-  status: EmployeeStatus;
-  failedLoginAttempts: number;
-  lockedUntil: Date | null;
-};
+type EmployeeLoginRecord = Prisma.EmployeeGetPayload<{ include: typeof EMPLOYEE_ACCESS_INCLUDE }>;
 
 @Injectable()
 export class AuthRepository {
@@ -42,7 +50,7 @@ export class AuthRepository {
   async findEmployeeById(employeeId: string): Promise<EmployeeAccessProfile | null> {
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId },
-      include: EMPLOYEE_ACCESS_INCLUDE,
+      select: EMPLOYEE_ACCESS_SELECT,
     });
     return employee ? this.toAccessProfile(employee) : null;
   }
@@ -133,7 +141,7 @@ export class AuthRepository {
         employee: { status: EmployeeStatus.ACTIVE },
       },
       include: {
-        employee: { include: EMPLOYEE_ACCESS_INCLUDE },
+        employee: { select: EMPLOYEE_ACCESS_SELECT },
       },
     });
 
@@ -201,7 +209,7 @@ export class AuthRepository {
         employee: { status: EmployeeStatus.ACTIVE },
       },
       include: {
-        employee: { include: EMPLOYEE_ACCESS_INCLUDE },
+        employee: { select: EMPLOYEE_ACCESS_SELECT },
       },
     });
 
@@ -230,6 +238,100 @@ export class AuthRepository {
         },
       });
     });
+  }
+
+  async listActiveSessions(employeeId: string, currentSessionId: string): Promise<SessionDto[]> {
+    const sessions = await this.prisma.authSession.findMany({
+      where: { employeeId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { lastUsedAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        createdAt: true,
+        lastUsedAt: true,
+        expiresAt: true,
+        ipAddress: true,
+        userAgent: true,
+      },
+    });
+    return sessions.map((session) => ({ ...session, current: session.id === currentSessionId }));
+  }
+
+  async revokeOwnSession(
+    employeeId: string,
+    sessionId: string,
+    metadata: RequestMetadata,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      const result = await transaction.authSession.updateMany({
+        where: { id: sessionId, employeeId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      if (result.count !== 1) throw new NotFoundException('Sesión activa no encontrada');
+      await transaction.auditLog.create({
+        data: {
+          actorId: employeeId,
+          action: AuditAction.SESSION_REVOKED,
+          resource: 'auth-session',
+          resourceId: sessionId,
+          outcome: 'SUCCESS',
+          ipAddress: metadata.ipAddress,
+        },
+      });
+    });
+  }
+
+  async revokeAllSessions(employeeId: string, metadata: RequestMetadata): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.authSession.updateMany({
+        where: { employeeId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.auditLog.create({
+        data: {
+          actorId: employeeId,
+          action: AuditAction.ALL_SESSIONS_REVOKED,
+          resource: 'auth-session',
+          outcome: 'SUCCESS',
+          ipAddress: metadata.ipAddress,
+        },
+      }),
+    ]);
+  }
+
+  async findPasswordHash(employeeId: string): Promise<string | null> {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { passwordHash: true },
+    });
+    return employee?.passwordHash ?? null;
+  }
+
+  async updatePasswordAndRevokeSessions(
+    employeeId: string,
+    passwordHash: string,
+    metadata: RequestMetadata,
+  ): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.employee.update({
+        where: { id: employeeId },
+        data: { passwordHash, passwordChangedAt: new Date() },
+      }),
+      this.prisma.authSession.updateMany({
+        where: { employeeId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.auditLog.create({
+        data: {
+          actorId: employeeId,
+          action: AuditAction.PASSWORD_CHANGED,
+          resource: 'employee',
+          resourceId: employeeId,
+          outcome: 'SUCCESS',
+          ipAddress: metadata.ipAddress,
+        },
+      }),
+    ]);
   }
 
   toAccessProfile(employee: EmployeeAccessRecord): EmployeeAccessProfile {

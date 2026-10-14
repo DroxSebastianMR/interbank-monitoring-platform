@@ -1,12 +1,12 @@
 import 'reflect-metadata';
-import { validate } from '@/config/env.validation';
+import { validateEnvironment } from '@/config/environment/environment.validation';
 describe('environment validation', () => {
   it('rejects missing critical values', () => {
-    expect(() => validate({})).toThrow('Invalid environment');
+    expect(() => validateEnvironment({})).toThrow('Invalid environment');
   });
   it('accepts string environment variables', () => {
     expect(
-      validate({
+      validateEnvironment({
         DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
         JWT_SECRET: '12345678901234567890123456789012',
         REDIS_HOST: 'localhost',

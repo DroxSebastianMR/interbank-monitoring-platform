@@ -16,6 +16,12 @@ export class RoleDto {
   @ApiProperty({ example: 'Ingeniería TI' }) name!: string;
   @ApiPropertyOptional() description!: string | null;
   @ApiProperty({ type: [String] }) permissions!: string[];
+  @ApiProperty() isSystem!: boolean;
 }
 
 export class EmployeeRolesUpdatedDto extends EmployeeProfileDto {}
+
+export class EmployeeSummaryDto extends EmployeeProfileDto {
+  @ApiProperty({ enum: ['ACTIVE', 'DISABLED'] }) status!: 'ACTIVE' | 'DISABLED';
+  @ApiPropertyOptional() lastLoginAt!: Date | null;
+}

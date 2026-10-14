@@ -29,3 +29,13 @@ export class AuthResponseDto {
 export class LogoutResponseDto {
   @ApiProperty({ example: true }) loggedOut!: true;
 }
+
+export class SessionDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() createdAt!: Date;
+  @ApiProperty() lastUsedAt!: Date;
+  @ApiProperty() expiresAt!: Date;
+  @ApiPropertyOptional() ipAddress!: string | null;
+  @ApiPropertyOptional() userAgent!: string | null;
+  @ApiProperty() current!: boolean;
+}
