@@ -2,6 +2,7 @@ import asyncio
 
 import httpx
 
+from app.core.config import Settings, get_settings
 from app.main import app
 
 
@@ -72,24 +73,31 @@ def test_window_analysis_uses_baseline_without_trained_model():
 
 
 def test_assistant_fallback_uses_supplied_evidence():
-    response = request(
-        "POST",
-        "/v1/assistant/answer",
-        json={
-            "question": "¿Cómo está login?",
-            "asOf": "2026-10-09T10:00:00Z",
-            "services": [
-                {
-                    "id": "login",
-                    "name": "Login",
-                    "status": "OPERATIONAL",
-                    "lastCheckedAt": "2026-10-09T09:59:50Z",
-                    "latencyMs": 35,
-                }
-            ],
-            "incidents": [],
-        },
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        assistant_provider="none", ai_internal_token=None, _env_file=None
     )
+    try:
+        response = request(
+            "POST",
+            "/v1/assistant/answer",
+            json={
+                "question": "¿Cómo está login?",
+                "asOf": "2026-10-09T10:00:00Z",
+                "access": {"roles": ["VIEWER"], "permissions": ["assistant.ask", "services.read"]},
+                "services": [
+                    {
+                        "id": "login",
+                        "name": "Login",
+                        "status": "OPERATIONAL",
+                        "lastCheckedAt": "2026-10-09T09:59:50Z",
+                        "latencyMs": 35,
+                    }
+                ],
+                "incidents": [],
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
     assert response.status_code == 200
     assert response.json()["provider"] == "deterministic"
     assert "Login: OPERATIONAL" in response.json()["answer"]

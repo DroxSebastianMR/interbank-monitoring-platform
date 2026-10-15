@@ -13,6 +13,7 @@ from app.main import app
 PAYLOAD = {
     "question": "¿Cómo está el servicio login?",
     "asOf": "2026-10-14T10:00:00Z",
+    "access": {"roles": ["VIEWER"], "permissions": ["assistant.ask", "services.read"]},
     "services": [{"id": "login", "name": "Login", "status": "OPERATIONAL", "lastCheckedAt": "2026-10-14T09:59:50Z", "latencyMs": 40}],
     "incidents": [],
 }

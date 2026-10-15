@@ -1,2 +1,2 @@
 export const AI_REQUEST_TIMEOUT_MS = 800;
-export const AI_ASSISTANT_TIMEOUT_MS = 9_000;
+export const AI_ASSISTANT_TIMEOUT_MS = 18_000;

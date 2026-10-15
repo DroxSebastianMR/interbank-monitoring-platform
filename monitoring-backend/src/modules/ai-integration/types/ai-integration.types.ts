@@ -26,6 +26,8 @@ export interface WindowAnalysis {
 export interface AssistantEvidence {
   question: string;
   asOf: string;
+  access: { roles: string[]; permissions: string[] };
+  coverage: { instanceLevel: boolean; description: string };
   services: Array<{
     id: string;
     name: string;
@@ -33,7 +35,16 @@ export interface AssistantEvidence {
     lastCheckedAt: string | null;
     latencyMs: number | null;
   }>;
-  incidents: Array<{ id: string; serviceId: string; title: string; status: string }>;
+  incidents: Array<{
+    id: string;
+    serviceId: string;
+    title: string;
+    status: string;
+    severity: string;
+    openedAt: string;
+    resolvedAt: string | null;
+    lastObservedAt: string;
+  }>;
   metrics?: Array<{
     serviceId: string;
     requestRate: number;

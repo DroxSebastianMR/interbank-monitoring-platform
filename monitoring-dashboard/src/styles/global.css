@@ -451,7 +451,7 @@ body {
   display: grid;
   grid-template-columns: 240px 1fr;
 }
-aside {
+.shell > aside {
   background: linear-gradient(170deg, #063b23 0%, #092d1d 100%);
   color: #eafff1;
   padding: 34px 24px;
@@ -635,7 +635,7 @@ td small {
   .shell {
     display: block;
   }
-  aside {
+  .shell > aside {
     padding: 18px;
   }
   nav {

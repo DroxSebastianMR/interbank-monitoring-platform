@@ -1,5 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { AssistantRepository } from '@/modules/assistant/repositories/assistant.repository';
+import { deniedAssistantTopic } from '@/modules/assistant/services/assistant-access.policy';
+import { redactAssistantContent } from '@/modules/assistant/services/assistant-content-safety';
+import {
+  buildLocalAssistantAnswer,
+  isClearlyUnrelatedQuestion,
+  isConversationalIntent,
+  isInstanceOutageQuestion,
+} from '@/modules/assistant/services/local-assistant-reply';
 import { AiIntegrationService } from '@/modules/ai-integration/services/ai-integration.service';
 import type {
   AssistantAnswer,
@@ -8,6 +17,8 @@ import type {
 import { IncidentsService } from '@/modules/incidents/services/incidents.service';
 import { MonitoredServicesService } from '@/modules/monitored-services/services/monitored-services.service';
 import { PrometheusMetricsService } from '@/modules/monitoring/services/prometheus-metrics.service';
+import { PermissionCode } from '@/modules/auth/enums/permission-code.enum';
+import type { EmployeePrincipal } from '@/modules/auth/types/auth.types';
 
 @Injectable()
 export class AssistantService {
@@ -23,10 +34,45 @@ export class AssistantService {
 
   async ask(
     question: string,
+    employee: EmployeePrincipal,
     history: AssistantEvidence['history'] = [],
   ): Promise<AssistantAnswer> {
+    question = redactAssistantContent(question.trim());
+    if (!employee.permissions.includes(PermissionCode.ASSISTANT_ASK)) {
+      throw new ForbiddenException('No tienes acceso al asistente');
+    }
     const asOf = new Date().toISOString();
-    const services = this.services.findAll().map((service) => ({
+    const access = { roles: employee.roles, permissions: employee.permissions };
+    const coverage = {
+      instanceLevel: false,
+      description: 'Hay verificaciones de servicios a través del gateway, pero no telemetría ni incidentes atribuidos a cada instancia de backend.',
+    };
+    const deniedTopic = deniedAssistantTopic(question, employee);
+    if (deniedTopic) {
+      return {
+        answer: `Con tu acceso actual no puedo mostrar información sobre ${deniedTopic}. Si la necesitas para tu trabajo, solicita el permiso correspondiente.`,
+        provider: 'deterministic',
+        asOf,
+        evidenceServiceIds: [],
+      };
+    }
+    if (isConversationalIntent(question) || isClearlyUnrelatedQuestion(question)) {
+      const evidence: AssistantEvidence = {
+        question, asOf, access, coverage, services: [], incidents: [], metrics: [], history,
+      };
+      try {
+        return await this.ai.answerQuestion(evidence);
+      } catch (error) {
+        this.logger.warn(
+          `Assistant service unavailable: ${error instanceof Error ? error.message : 'unknown error'}`,
+        );
+        return buildLocalAssistantAnswer(evidence);
+      }
+    }
+    const canReadServices = employee.permissions.includes(PermissionCode.SERVICES_READ);
+    const canReadIncidents = employee.permissions.includes(PermissionCode.INCIDENTS_READ);
+    const canReadAnalytics = employee.permissions.includes(PermissionCode.ANALYTICS_READ);
+    const services = (canReadServices ? this.services.findAll() : []).map((service) => ({
       id: service.id,
       name: service.name,
       status: service.status,
@@ -34,9 +80,9 @@ export class AssistantService {
       latencyMs: service.latencyMs,
     }));
     const [incidentRows, metricRows] = await Promise.all([
-      this.incidents.findAll(),
+      canReadIncidents ? this.incidents.findAll() : Promise.resolve([]),
       Promise.all(
-        services.map(async (service) => {
+        (canReadAnalytics ? services : []).map(async (service) => {
           const value = await this.prometheus.read(service.id);
           return value ? { serviceId: service.id, ...value } : null;
         }),
@@ -47,36 +93,32 @@ export class AssistantService {
       serviceId: incident.serviceKey,
       title: incident.title,
       status: incident.status,
+      severity: incident.severity,
+      openedAt: incident.openedAt.toISOString(),
+      resolvedAt: incident.resolvedAt?.toISOString() ?? null,
+      lastObservedAt: incident.lastObservedAt.toISOString(),
     }));
     const metrics = metricRows.filter(
       (value): value is NonNullable<typeof value> => value !== null,
     );
-    const evidence: AssistantEvidence = { question, asOf, services, incidents, metrics, history };
+    const evidence: AssistantEvidence = {
+      question, asOf, access, coverage, services, incidents, metrics, history,
+    };
+    if (isInstanceOutageQuestion(question) && !coverage.instanceLevel) {
+      return buildLocalAssistantAnswer(evidence);
+    }
     try {
       return await this.ai.answerQuestion(evidence);
     } catch (error) {
       this.logger.warn(
         `Assistant service unavailable: ${error instanceof Error ? error.message : 'unknown error'}`,
       );
-      const inScope =
-        /monitor|servicio|servidor|backend|nginx|redis|prometheus|latencia|incidente|alerta|ca[ií]da|disponibilidad|transferencia|login|balance|cpu|memoria|base de datos|transacci[oó]n|salud|m[eé]trica|riesgo|anomal[ií]a/i.test(
-          question,
-        );
-      return {
-        answer: !inScope
-          ? 'Solo puedo ayudarte con el estado, las métricas y los incidentes del sistema de monitoreo de este proyecto.'
-          : services.length
-            ? `Estado observado: ${services.map((service) => `${service.name}: ${service.status}`).join(', ')}. Datos al ${asOf}.`
-            : 'No hay datos disponibles para responder con certeza.',
-        provider: 'deterministic',
-        asOf,
-        evidenceServiceIds: inScope ? services.map((service) => service.id) : [],
-      };
+      return buildLocalAssistantAnswer(evidence);
     }
   }
 
   createConversation(employeeId: string, title?: string) {
-    return this.repository.create(employeeId, title?.trim() || 'Nueva conversación');
+    return this.repository.create(employeeId, redactAssistantContent(title?.trim() || 'Nueva conversación'));
   }
 
   listConversations(employeeId: string, archived = false) {
@@ -89,7 +131,7 @@ export class AssistantService {
 
   updateConversation(id: string, employeeId: string, title?: string, archived?: boolean) {
     return this.repository.update(id, employeeId, {
-      ...(title !== undefined ? { title: title.trim() } : {}),
+      ...(title !== undefined ? { title: redactAssistantContent(title.trim()) } : {}),
       ...(archived !== undefined ? { archivedAt: archived ? new Date() : null } : {}),
     });
   }
@@ -102,16 +144,30 @@ export class AssistantService {
     return this.repository.messages(id, employeeId);
   }
 
-  async sendMessage(id: string, employeeId: string, content: string) {
-    const conversation = await this.repository.owned(id, employeeId);
+  async sendMessage(id: string, employee: EmployeePrincipal, content: string) {
+    const safeContent = redactAssistantContent(content.trim());
+    const conversation = await this.repository.owned(id, employee.id);
     const previous = await this.repository.recentMessagesAfterOwnershipCheck(id);
-    const history = previous.slice(-6).map((message) => ({
+    const accessFingerprint = createHash('sha256')
+      .update(JSON.stringify({
+        roles: [...employee.roles].sort(),
+        permissions: [...employee.permissions].sort(),
+      }))
+      .digest('hex');
+    // A role downgrade must not feed an earlier privileged answer back to the model.
+    const history = previous.filter((message) =>
+      message.evidence && typeof message.evidence === 'object' &&
+      !Array.isArray(message.evidence) &&
+      message.evidence.accessFingerprint === accessFingerprint,
+    ).slice(-6).map((message) => ({
       role: message.role === 'assistant' ? ('assistant' as const) : ('user' as const),
       content: message.content.slice(0, 1000),
     }));
-    const userMessage = await this.repository.append(id, 'user', content.trim());
+    const userMessage = await this.repository.append(
+      id, 'user', safeContent, undefined, { accessFingerprint },
+    );
     const started = performance.now();
-    const answer = await this.ask(content.trim(), history);
+    const answer = await this.ask(safeContent, employee, history);
     const assistantMessage = await this.repository.append(
       id,
       'assistant',
@@ -120,6 +176,7 @@ export class AssistantService {
       {
         asOf: answer.asOf,
         serviceIds: answer.evidenceServiceIds,
+        accessFingerprint,
       },
     );
     const run = await this.repository.createRun({
@@ -133,7 +190,7 @@ export class AssistantService {
     });
     await this.repository.finishConversation(
       id,
-      conversation.title === 'Nueva conversación' ? content.trim().slice(0, 100) : undefined,
+      conversation.title === 'Nueva conversación' ? safeContent.slice(0, 100) : undefined,
     );
     return { userMessage, assistantMessage, answer, run };
   }

@@ -45,6 +45,8 @@ describe('AiIntegrationService', () => {
     const evidence: AssistantEvidence = {
       question: '¿Cómo va el login?',
       asOf: '2026-10-10T00:01:00Z',
+      access: { roles: ['VIEWER'], permissions: ['assistant.ask', 'services.read'] },
+      coverage: { instanceLevel: false, description: 'Service-level only' },
       services: [],
       incidents: [],
     };

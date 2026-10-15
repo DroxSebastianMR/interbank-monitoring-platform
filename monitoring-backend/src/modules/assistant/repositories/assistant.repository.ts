@@ -92,7 +92,7 @@ export class AssistantRepository {
     promptTokens?: number;
     completionTokens?: number;
   }) {
-    return this.prisma.assistantRun.create({ data: { ...data, promptVersion: 'monitor-v1' } });
+    return this.prisma.assistantRun.create({ data: { ...data, promptVersion: 'monitor-v3' } });
   }
 
   async run(id: string, employeeId: string) {

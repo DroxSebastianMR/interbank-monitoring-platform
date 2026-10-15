@@ -36,11 +36,11 @@ export class AssistantController {
   constructor(private readonly service: AssistantService) {}
 
   @Post('ask')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @RequirePermissions(PermissionCode.ASSISTANT_ASK)
   @ApiOperation({ summary: 'Consulta puntual sin historial (compatibilidad)' })
-  ask(@Body() dto: AskAssistantDto): Promise<AssistantAnswer> {
-    return this.service.ask(dto.question);
+  ask(@CurrentEmployee() employee: EmployeePrincipal, @Body() dto: AskAssistantDto): Promise<AssistantAnswer> {
+    return this.service.ask(dto.question, employee);
   }
 
   @Post('conversations')
@@ -93,14 +93,14 @@ export class AssistantController {
   }
 
   @Post('conversations/:id/messages')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @RequirePermissions(PermissionCode.ASSISTANT_ASK)
   send(
     @CurrentEmployee() employee: EmployeePrincipal,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: SendMessageDto,
   ) {
-    return this.service.sendMessage(id, employee.id, dto.content);
+    return this.service.sendMessage(id, employee, dto.content);
   }
 
   @Post('messages/:id/feedback')

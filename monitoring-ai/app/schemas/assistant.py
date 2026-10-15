@@ -16,6 +16,15 @@ class IncidentEvidence(BaseModel):
     serviceId: str
     title: str
     status: str
+    severity: str | None = None
+    openedAt: AwareDatetime | None = None
+    resolvedAt: AwareDatetime | None = None
+    lastObservedAt: AwareDatetime | None = None
+
+
+class EvidenceCoverage(BaseModel):
+    instanceLevel: bool = False
+    description: str = ""
 
 
 class MetricEvidence(BaseModel):
@@ -30,9 +39,16 @@ class HistoryMessage(BaseModel):
     content: str = Field(max_length=1000)
 
 
+class AssistantAccess(BaseModel):
+    roles: list[str] = Field(max_length=10)
+    permissions: list[str] = Field(max_length=50)
+
+
 class AssistantRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1000)
     asOf: AwareDatetime
+    access: AssistantAccess
+    coverage: EvidenceCoverage = Field(default_factory=EvidenceCoverage)
     services: list[ServiceEvidence] = Field(max_length=100)
     incidents: list[IncidentEvidence] = Field(max_length=100)
     metrics: list[MetricEvidence] = Field(default_factory=list, max_length=100)

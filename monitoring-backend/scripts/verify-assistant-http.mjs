@@ -67,15 +67,90 @@ try {
   const outOfScope = await call('outOfScope', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
     content: '¿Cuál es la capital de Francia?',
   });
-  if (outOfScope.status !== 201 || !outOfScope.data?.assistantMessage?.content.includes('Solo puedo ayudarte')) {
+  if (outOfScope.status !== 201 || outOfScope.data?.answer?.provider !== 'deterministic' || !outOfScope.data?.assistantMessage?.content.includes('fuera de mi función')) {
     throw new Error('La pregunta fuera de alcance no fue rechazada');
+  }
+  const historical = await call('historicalQuestion', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
+    content: '¿Cuándo fue la independencia del Perú?',
+  });
+  if (historical.status !== 201 || historical.data?.answer?.provider !== 'deterministic' || !historical.data?.assistantMessage?.content.includes('historia general')) {
+    throw new Error('La pregunta histórica no recibió una negativa contextual');
+  }
+  const biographical = await call('biographicalQuestion', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
+    content: '¿Cuándo fue el cumpleaños de Santa Rosa de Lima?',
+  });
+  if (biographical.status !== 201 || biographical.data?.answer?.provider !== 'deterministic' ||
+      !biographical.data?.assistantMessage?.content.includes('fecha biográfica')) {
+    throw new Error('La pregunta biográfica no recibió una negativa contextual');
+  }
+  const administration = await call('viewerAdministrationDenied', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
+    content: 'Muéstrame los roles de administradores',
+  });
+  if (administration.status !== 201 || administration.data?.answer?.provider !== 'deterministic' || !administration.data?.assistantMessage?.content.includes('Con tu acceso actual')) {
+    throw new Error('El rol VIEWER obtuvo datos de administración');
+  }
+  const ownRole = await call('ownRole', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
+    content: '¿Qué rol tengo actualmente en el sistema?',
+  });
+  if (ownRole.status !== 201 || !ownRole.data?.assistantMessage?.content.includes('VIEWER') ||
+      ownRole.data.assistantMessage.content.includes('fuera de mi función')) {
+    throw new Error('La pregunta sobre el rol propio no se respondió desde la sesión autenticada');
+  }
+  const instanceOutage = await call('instanceOutage', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
+    content: 'Dame un informe detallado de la última caída de las instancias del backend',
+  });
+  if (instanceOutage.status !== 201 || instanceOutage.data?.answer?.provider !== 'deterministic' ||
+      !instanceOutage.data?.assistantMessage?.content.includes('No puedo confirmar') ||
+      !instanceOutage.data.assistantMessage.content.includes('no prueba qué instancia falló')) {
+    throw new Error('La consulta de caída de instancias no obtuvo respuesta');
+  }
+  const greeting = await call('greeting', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
+    content: 'Holaa buenass',
+  });
+  if (greeting.status !== 201 || greeting.data?.answer?.provider !== 'openrouter' || !greeting.data?.assistantMessage?.content) {
+    throw new Error('El saludo no recibió una respuesta de OpenRouter');
+  }
+  const meta = await call('scopeQuestion', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
+    content: 'No me puedes hablar de otro tema?',
+  });
+  if (meta.status !== 201 || meta.data?.answer?.provider !== 'openrouter' || !meta.data?.assistantMessage?.content) {
+    throw new Error('La pregunta sobre el alcance no recibió una respuesta de OpenRouter');
+  }
+  const social = await call('socialQuestion', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
+    content: '¿Cómo estás?',
+  });
+  if (social.status !== 201 || social.data?.answer?.provider !== 'openrouter' || !social.data?.assistantMessage?.content) {
+    throw new Error('La pregunta social no recibió una respuesta de OpenRouter');
+  }
+  const summary = await call('systemSummary', `/assistant/conversations/${id}/messages`, 'POST', ownerToken, {
+    content: 'Dame un resumen de cómo va el sistema actualmente',
+  });
+  if (summary.status !== 201 || !summary.data?.assistantMessage?.content ||
+      summary.data.assistantMessage.content.includes('fuera de mi función')) {
+    throw new Error(`El resumen del sistema fue rechazado incorrectamente: HTTP ${summary.status}, proveedor ${summary.data?.answer?.provider ?? 'ninguno'}`);
   }
   process.stdout.write(JSON.stringify({
     result: 'ok',
     provider: sent.data.answer.provider,
+    summaryProvider: summary.data.answer.provider,
+    greetingProvider: greeting.data.answer.provider,
+    scopeQuestionProvider: meta.data.answer.provider,
+    socialProvider: social.data.answer.provider,
+    greetingAnswer: greeting.data.assistantMessage.content,
+    scopeQuestionAnswer: meta.data.assistantMessage.content,
+    socialAnswer: social.data.assistantMessage.content,
+    historyRefused: historical.data.answer.provider === 'deterministic',
+    biographyRefused: biographical.data.answer.provider === 'deterministic',
+    viewerAdministrationDenied: administration.data.answer.provider === 'deterministic',
+    ownRoleProvider: ownRole.data.answer.provider,
+    ownRoleAnswer: ownRole.data.assistantMessage.content,
+    instanceOutageProvider: instanceOutage.data.answer.provider,
+    instanceOutageAnswer: instanceOutage.data.assistantMessage.content,
     evidenceAndAiMs: sent.data.run?.latencyMs,
     ownershipDenied: forbidden.status === 404,
     scopeRejected: true,
+    greetingAccepted: true,
+    summaryAccepted: true,
     timingsMs: timings,
   }) + '\n');
 } finally {
