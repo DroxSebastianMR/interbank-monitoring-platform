@@ -3,7 +3,7 @@ import {
   ArrowLeftRight,
   Home,
   ScanLine,
-  Tag,
+  ReceiptText,
   WalletCards,
 } from "lucide-react-native";
 import React from "react";
@@ -20,7 +20,7 @@ import { BANKING_COLORS } from "@/src/shared/theme/banking.theme";
 const TABS = {
   Home: { icon: Home, label: "Inicio" },
   Accounts: { icon: ArrowLeftRight, label: "Movimientos" },
-  Payments: { icon: Tag, label: "Beneficios" },
+  Payments: { icon: ReceiptText, label: "Servicios" },
   Profile: { icon: WalletCards, label: "Para ti" },
 } as const;
 
