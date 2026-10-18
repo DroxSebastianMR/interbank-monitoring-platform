@@ -1,4 +1,4 @@
-import { Counter, Histogram } from '@prometheus-io/client';
+import { Counter, Gauge, Histogram } from '@prometheus-io/client';
 import type { Request, Response, NextFunction } from 'express';
 
 import { httpMetricsRegistry } from '@/modules/metrics/metrics.registry';
@@ -21,6 +21,8 @@ const duration = new Histogram({
 });
 
 const knownServices = new Set(['auth', 'accounts', 'transfers', 'service-payments', 'home']);
+const inFlight = new Gauge({ name: 'interbank_app_http_in_flight', help: 'Requests currently in flight in this process, excluding metrics', registers: [httpMetricsRegistry] });
+const aborted = new Counter({ name: 'interbank_app_http_aborted_total', help: 'Connections closed before response completion; not necessarily server timeouts', registers: [httpMetricsRegistry] });
 
 export function logicalService(path: string): string {
   const segment = path.split('?')[0]?.split('/').filter(Boolean)[0] ?? 'other';
@@ -32,7 +34,12 @@ export function observeHttpRequest(request: Request, response: Response, next: N
   const isHealth = request.path.endsWith('/health') || request.path === '/health';
   const service = logicalService(request.path);
   const started = process.hrtime.bigint();
+  inFlight.inc();
+  let released = false;
+  const release = () => { if (!released) { released = true; inFlight.dec(); } };
+  response.once('close', () => { if (!released) aborted.inc(); release(); });
   response.once('finish', () => {
+    release();
     const seconds = Number(process.hrtime.bigint() - started) / 1_000_000_000;
     if (!isHealth) {
       requests.inc({ service, status_code: String(response.statusCode) });

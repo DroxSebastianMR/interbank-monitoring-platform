@@ -3,7 +3,6 @@ import type { RouteObject } from 'react-router-dom';
 import { ProtectedRoute } from '@/app/router/guards/protected-route';
 import { PATHS } from '@/app/router/constants/paths';
 import { OperationsLayout } from '@/layouts/operations/operations-layout';
-import { PlaceholderPage } from '@/shared/components/placeholder-page';
 
 export const protectedRoutes: RouteObject[] = [
   { element: <ProtectedRoute />, children: [
@@ -20,9 +19,9 @@ export const protectedRoutes: RouteObject[] = [
       { path: '/services/:id', lazy: async () => ({
         Component: (await import('@/features/services/pages/service-detail-page')).ServiceDetailPage,
       }) },
-      { path: PATHS.INCIDENTS, element: <PlaceholderPage title="Incidentes" /> },
-      { path: PATHS.ALERTS, element: <PlaceholderPage title="Alertas" /> },
-      { path: PATHS.ANALYTICS, element: <PlaceholderPage title="Analítica" /> },
+      { path: PATHS.INCIDENTS, lazy: async () => ({ Component: (await import('@/features/incidents/pages/incidents-page')).IncidentsPage }) },
+      { path: PATHS.ALERTS, lazy: async () => ({ Component: (await import('@/features/alerts/pages/alerts-page')).AlertsPage }) },
+      { path: PATHS.ANALYTICS, lazy: async () => ({ Component: (await import('@/features/analytics/pages/analytics-page')).AnalyticsPage }) },
       { path: PATHS.HEALTH, lazy: async () => ({
         Component: (await import('@/features/health/pages/health-page')).HealthPage,
       }) },

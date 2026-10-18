@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 
 import {
   ENDPOINT_CACHE_MS,
@@ -74,6 +75,8 @@ export class EndpointObservabilityService {
             clientErrorRateHz: null,
             serverErrorRateHz: null,
             latencyP95Ms: null,
+            latencyP50Ms: null,
+            latencyP99Ms: null,
             observedRequests: null,
           })) ?? [],
       };
@@ -83,7 +86,7 @@ export class EndpointObservabilityService {
   }
 
   private async collect(now: number): Promise<EndpointSnapshotDto> {
-    const [catalog, up, scrapedAt, total, rate, clientErrors, serverErrors, p95] =
+    const [catalog, up, scrapedAt, total, rate, clientErrors, serverErrors, p95, p50, p99] =
       await Promise.all(
         Object.values(ENDPOINT_QUERIES).map((query) => this.prometheus.query(query, now / 1_000)),
       );
@@ -96,6 +99,8 @@ export class EndpointObservabilityService {
       clients = index(clientErrors),
       servers = index(serverErrors),
       latencies = index(p95);
+    const medians = index(p50),
+      tails = index(p99);
     const ids = new Set(
       [...availability.keys(), ...catalog.map((sample) => sample.metric.instance)].filter(Boolean),
     );
@@ -150,6 +155,13 @@ export class EndpointObservabilityService {
               ? EndpointTrafficState.OBSERVED
               : EndpointTrafficState.NO_TRAFFIC;
       endpoints.push({
+        operationId: createHash('sha256')
+          .update(`interbank-app:${method}:${route}`)
+          .digest('hex')
+          .slice(0, 24),
+        application: 'interbank-app',
+        version: route.match(/^\/v(\d+)(?:\/|$)/)?.[1] ?? 'unversioned',
+        controlPolicy: 'OBSERVE_ONLY',
         instance,
         module,
         method,
@@ -164,6 +176,14 @@ export class EndpointObservabilityService {
         latencyP95Ms:
           current && hz !== null && hz > 0 && latencies.get(key) != null
             ? latencies.get(key)! * 1_000
+            : null,
+        latencyP50Ms:
+          current && hz !== null && hz > 0 && medians.get(key) != null
+            ? medians.get(key)! * 1000
+            : null,
+        latencyP99Ms:
+          current && hz !== null && hz > 0 && tails.get(key) != null
+            ? tails.get(key)! * 1000
             : null,
       });
     }

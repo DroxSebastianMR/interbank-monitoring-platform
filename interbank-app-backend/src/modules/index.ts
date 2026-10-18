@@ -1,4 +1,5 @@
 import type { Type } from '@nestjs/common';
+import { OperationalAnalyticsModule } from '@/modules/operational-analytics';
 
 import { FEATURE_MODULES_ACCOUNTS } from '@/modules/accounts';
 import { FEATURE_MODULES_AUTH } from '@/modules/auth';
@@ -14,6 +15,7 @@ import { FEATURE_MODULES_LOANS } from '@/modules/loans';
 import { FEATURE_MODULES_PROMOTIONS } from '@/modules/promotions';
 
 export const FEATURE_MODULES: Type[] = [
+  OperationalAnalyticsModule,
   ...FEATURE_MODULES_SIMULATION,
   ...FEATURE_MODULES_HEALTH,
   MetricsModule,

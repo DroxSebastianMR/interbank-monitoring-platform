@@ -10,6 +10,7 @@ import { AuthRepository } from '@/modules/auth/repositories/auth.repository';
 import { AuthPrincipalCacheService } from '@/modules/auth/services/auth-principal-cache.service';
 import { EndpointObservabilityController } from '@/modules/endpoint-observability/controllers/endpoint-observability.controller';
 import { EndpointObservabilityService } from '@/modules/endpoint-observability/services/endpoint-observability.service';
+import { EndpointStreamService } from '@/modules/endpoint-observability/services/endpoint-stream.service';
 
 describe('Endpoint catalog authorization (HTTP)', () => {
   let app: INestApplication;
@@ -40,6 +41,7 @@ describe('Endpoint catalog authorization (HTTP)', () => {
           },
         },
         { provide: EndpointObservabilityService, useValue: { snapshot } },
+        { provide: EndpointStreamService, useValue: { snapshot } },
       ],
     }).compile();
     app = module.createNestApplication();

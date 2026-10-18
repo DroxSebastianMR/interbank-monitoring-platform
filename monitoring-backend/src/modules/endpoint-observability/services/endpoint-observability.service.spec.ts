@@ -59,22 +59,22 @@ describe('EndpointObservabilityService', () => {
       traffic: EndpointTrafficState.NO_TRAFFIC,
     });
     expect(result.instances[0].observedAt).toBe(new Date(time - 5000).toISOString());
-    expect(query).toHaveBeenCalledTimes(8);
+    expect(query).toHaveBeenCalledTimes(10);
   });
 
   it('coalesces concurrent requests and serves the cached snapshot without more upstream queries', async () => {
     const results = await Promise.all(Array.from({ length: 100 }, () => service.snapshot()));
     expect(new Set(results).size).toBe(1);
     await service.snapshot();
-    expect(query).toHaveBeenCalledTimes(8);
+    expect(query).toHaveBeenCalledTimes(10);
   });
 
-  it('uses eight grouped queries even for a thousand operations', async () => {
+  it('uses ten grouped queries even for a thousand operations', async () => {
     vectors[ENDPOINT_QUERIES.catalog] = Array.from({ length: 1000 }, (_, i) =>
       sample({ ...a, route: `/test-${i}/{id}` }, 1),
     );
     expect((await service.snapshot()).endpoints).toHaveLength(1000);
-    expect(query).toHaveBeenCalledTimes(8);
+    expect(query).toHaveBeenCalledTimes(10);
   });
 
   it('does not reuse old rates when an instance stops responding to scrapes', async () => {

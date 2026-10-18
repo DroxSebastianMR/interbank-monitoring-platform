@@ -18,6 +18,7 @@ async function bootstrap() {
     logger: new CompactConsoleLogger(),
   });
   const configService = app.get(ConfigService);
+  app.enableShutdownHooks();
   const appConfig = configService.getOrThrow<AppConfig>('app');
 
   app.use(helmet());

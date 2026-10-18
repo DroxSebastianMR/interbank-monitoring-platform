@@ -28,3 +28,6 @@ class AnalyzeWindowResponse(BaseModel):
     riskLevel: Literal["LOW", "MEDIUM", "HIGH"]
     modelMode: Literal["baseline", "isolation_forest"]
     reasons: list[str]
+    modelVersion: str = "baseline-v1"
+    scoreMeaning: str = "relative-anomaly-not-outage-probability"
+    featureNames: list[str] = Field(default_factory=list)

@@ -13,6 +13,12 @@ export class EndpointInstanceDto {
 }
 
 export class EndpointMetricDto {
+  @ApiProperty({ required: false }) operationId?: string;
+  @ApiProperty({ required: false }) application?: string;
+  @ApiProperty({ required: false }) version?: string;
+  @ApiProperty({ required: false }) controlPolicy?: string;
+  @ApiProperty({ type: Number, nullable: true, required: false }) latencyP50Ms?: number | null;
+  @ApiProperty({ type: Number, nullable: true, required: false }) latencyP99Ms?: number | null;
   @ApiProperty() instance!: string;
   @ApiProperty() module!: string;
   @ApiProperty() method!: string;
@@ -50,4 +56,12 @@ export class EndpointSnapshotDto {
   @ApiProperty() windowSeconds!: number;
   @ApiProperty({ type: [EndpointInstanceDto] }) instances!: EndpointInstanceDto[];
   @ApiProperty({ type: [EndpointMetricDto] }) endpoints!: EndpointMetricDto[];
+}
+
+export class StreamCursorDto {
+  @ApiProperty() streamId!: string;
+  @ApiProperty() sequence!: number;
+}
+export class LiveEndpointSnapshotDto extends EndpointSnapshotDto {
+  @ApiProperty({ type: StreamCursorDto }) cursor!: StreamCursorDto;
 }

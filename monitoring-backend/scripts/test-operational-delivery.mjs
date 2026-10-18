@@ -1,0 +1,41 @@
+// Run only against the disposable monitoring_v2_test database and isolated Redis.
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { ConfigService } = require('@nestjs/config');
+const { PrismaClient } = require('@prisma/client');
+const { IncidentsRepository } = require('../dist/modules/incidents/repositories/incidents.repository.js');
+const { OperationalDeliveryService } = require('../dist/queues/operational-delivery.service.js');
+const { NotificationsService } = require('../dist/modules/notifications/services/notifications.service.js');
+const target = new URL(process.env.DATABASE_URL ?? '');
+if (target.hostname !== '127.0.0.1' || target.pathname !== '/monitoring_v2_test' || target.port === '5432') throw new Error('Disposable test database required');
+const redisPort = Number(process.env.TEST_REDIS_PORT);
+if (!Number.isInteger(redisPort) || redisPort < 1024 || redisPort === 6379) throw new Error('Isolated Redis port required');
+const prisma = new PrismaClient();
+const config = new ConfigService({ MONITORING_DELIVERY_ENABLED: 'true', redis: { host: '127.0.0.1', port: redisPort } });
+const delivery = new OperationalDeliveryService(prisma, config);
+try {
+  const role = await prisma.role.create({ data: { code: `TEST_${Date.now()}`, name: 'Isolated test', permissions: { create: ['incidents.read', 'notifications.read'].map((code) => ({ permission: { connectOrCreate: { where: { code }, create: { code, resource: code.split('.')[0], action: 'read' } } } })) } } });
+  const makeEmployee = (code, roles) => prisma.employee.create({ data: { employeeCode: code, corporateEmail: `${code}@example.test`, passwordHash: 'unusable-test-hash', firstName: 'Test', lastName: 'Operator', roles } });
+  const allowed = await makeEmployee(`test-${Date.now()}`, { create: { roleId: role.id } });
+  const denied = await makeEmployee(`denied-${Date.now()}`, undefined);
+  const repository = new IncidentsRepository(prisma, undefined, config);
+  const started = performance.now();
+  await repository.open('isolated-test', 'UNAVAILABLE', 'HIGH', { reasons: ['test'], anomalyScore: .8, observedAt: new Date().toISOString() });
+  const event = await prisma.operationalOutbox.findFirstOrThrow({ orderBy: { createdAt: 'desc' } });
+  delivery.onModuleInit();
+  await delivery.dispatch();
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline && !(await prisma.operationalOutbox.findUnique({ where: { id: event.id } })).processedAt) await new Promise((resolve) => setTimeout(resolve, 100));
+  assert((await prisma.operationalOutbox.findUnique({ where: { id: event.id } })).processedAt);
+  const durationMs = performance.now() - started;
+  await Promise.all([delivery.deliver(event.id), delivery.deliver(event.id)]);
+  assert.equal(await prisma.notification.count({ where: { eventId: event.id, employeeId: allowed.id } }), 1);
+  assert.equal(await prisma.notification.count({ where: { eventId: event.id, employeeId: denied.id } }), 0);
+  const inbox = new NotificationsService(prisma, config);
+  const items = await inbox.findAll(allowed.id);
+  await assert.rejects(inbox.markRead(denied.id, items[0].id));
+  await inbox.markRead(allowed.id, items[0].id);
+  assert((await inbox.findAll(allowed.id))[0].readAt);
+  console.log(JSON.stringify({ passed: true, checks: ['real PostgreSQL commit/outbox', 'real BullMQ delivery', 'recipient permissions', 'duplicate delivery', 'cross-user read denied', 'acknowledgment'], commitToInboxMs: durationMs, environment: 'isolated-local-Postgres-Redis-no-production' }, null, 2));
+} finally { await delivery.onModuleDestroy(); await prisma.$disconnect(); }
