@@ -2,6 +2,7 @@ export const PATHS = {
   LOGIN: '/login',
   DASHBOARD: '/',
   SERVICES: '/services',
+  ENDPOINTS: '/endpoints',
   SERVICE_DETAIL: (id: string) => `/services/${encodeURIComponent(id)}`,
   INCIDENTS: '/incidents',
   ALERTS: '/alerts',

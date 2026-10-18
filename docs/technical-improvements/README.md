@@ -12,6 +12,8 @@ Este documento transforma las ideas de los tres videos compartidos el 18 de octu
 
 ## Estado actual observado
 
+Implementación posterior: [catálogo automático de endpoints por instancia](ENDPOINT-OBSERVABILITY.md), con permisos, métricas acotadas y caché agrupada. Incluye la restricción de Prometheus a loopback en el Compose de desarrollo actual.
+
 El proyecto ya cuenta con varias defensas correctas:
 
 - `helmet` está habilitado en los dos backends NestJS.
