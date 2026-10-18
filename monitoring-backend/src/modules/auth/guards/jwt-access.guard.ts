@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 
 import { InvalidSessionException } from '@/modules/auth/exceptions/authentication.exception';
 import { AuthRepository } from '@/modules/auth/repositories/auth.repository';
+import { AuthPrincipalCacheService } from '@/modules/auth/services/auth-principal-cache.service';
 import type { AccessTokenPayload, AuthenticatedRequest } from '@/modules/auth/types/auth.types';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class JwtAccessGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly repository: AuthRepository,
+    private readonly principalCache: AuthPrincipalCacheService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -23,8 +25,12 @@ export class JwtAccessGuard implements CanActivate {
       const payload = await this.jwt.verifyAsync<AccessTokenPayload>(token);
       if (!this.isAccessTokenPayload(payload)) throw new InvalidSessionException();
 
-      const employee = await this.repository.findPrincipalBySession(payload.sessionId, payload.sub);
+      const employee =
+        (await this.principalCache.get(payload.sessionId, payload.sub)) ??
+        (await this.repository.findPrincipalBySession(payload.sessionId, payload.sub));
       if (!employee) throw new InvalidSessionException();
+
+      await this.principalCache.set(payload.sessionId, employee);
 
       request.user = { ...employee, sessionId: payload.sessionId };
       return true;

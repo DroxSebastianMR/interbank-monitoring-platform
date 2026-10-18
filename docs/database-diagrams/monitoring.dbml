@@ -211,6 +211,55 @@ Table "monitoring"."Alert" {
   }
 }
 
+Table "monitoring"."assistant_conversations" {
+  "id" UUID [not null]
+  "employee_id" UUID [not null]
+  "title" VARCHAR(120) [not null]
+  "archived_at" TIMESTAMP(3)
+  "deleted_at" TIMESTAMP(3)
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "assistant_conversations_pkey"]
+    (employee_id, deleted_at, updated_at) [name: "assistant_conversations_employee_id_deleted_at_updated_at_idx"]
+  }
+}
+
+Table "monitoring"."assistant_messages" {
+  "id" UUID [not null]
+  "conversation_id" UUID [not null]
+  "role" VARCHAR(20) [not null]
+  "content" TEXT [not null]
+  "provider" VARCHAR(40)
+  "evidence" JSONB
+  "feedback" VARCHAR(20)
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "assistant_messages_pkey"]
+    (conversation_id, created_at, id) [name: "assistant_messages_conversation_id_created_at_id_idx"]
+  }
+}
+
+Table "monitoring"."assistant_runs" {
+  "id" UUID [not null]
+  "message_id" UUID [not null]
+  "provider" VARCHAR(40) [not null]
+  "model" VARCHAR(120)
+  "status" VARCHAR(20) [not null]
+  "latency_ms" INTEGER [not null]
+  "prompt_tokens" INTEGER
+  "completion_tokens" INTEGER
+  "prompt_version" VARCHAR(30) [not null]
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "assistant_runs_pkey"]
+    message_id [unique, name: "assistant_runs_message_id_key"]
+  }
+}
+
 Ref "employee_roles_employee_id_fkey":"monitoring"."employees"."id" <? "monitoring"."employee_roles"."employee_id" [update: cascade, delete: cascade]
 
 Ref "employee_roles_role_id_fkey":"monitoring"."roles"."id" <? "monitoring"."employee_roles"."role_id" [update: cascade, delete: cascade]
@@ -228,3 +277,9 @@ Ref "HealthCheck_serviceId_fkey":"monitoring"."MonitoredService"."id" <? "monito
 Ref "ServiceStateChange_serviceId_fkey":"monitoring"."MonitoredService"."id" <? "monitoring"."ServiceStateChange"."serviceId" [update: cascade, delete: cascade]
 
 Ref "Alert_incidentId_fkey":"monitoring"."Incident"."id" <? "monitoring"."Alert"."incidentId" [update: cascade, delete: cascade]
+
+Ref "assistant_conversations_employee_id_fkey":"monitoring"."employees"."id" <? "monitoring"."assistant_conversations"."employee_id" [update: cascade, delete: cascade]
+
+Ref "assistant_messages_conversation_id_fkey":"monitoring"."assistant_conversations"."id" <? "monitoring"."assistant_messages"."conversation_id" [update: cascade, delete: cascade]
+
+Ref "assistant_runs_message_id_fkey":"monitoring"."assistant_messages"."id" <? "monitoring"."assistant_runs"."message_id" [update: cascade, delete: cascade]

@@ -6,6 +6,7 @@ import type { AuthRepository } from '@/modules/auth/repositories/auth.repository
 import type { PasswordService } from '@/modules/auth/services/password.service';
 import type { EmployeePrincipal } from '@/modules/auth/types/auth.types';
 import type { RedisService } from '@/redis/redis.service';
+import type { AuthPrincipalCacheService } from '@/modules/auth/services/auth-principal-cache.service';
 
 const administrator = {
   id: 'employee-1',
@@ -20,11 +21,13 @@ describe('AccessControlService', () => {
     createRole: jest.fn(),
   };
   const redis = { client: { get: jest.fn(), set: jest.fn(), del: jest.fn() } };
+  const principalCache = { invalidateEmployee: jest.fn() };
   const service = new AccessControlService(
     repository as unknown as AccessControlRepository,
     {} as AuthRepository,
     {} as PasswordService,
     redis as unknown as RedisService,
+    principalCache as unknown as AuthPrincipalCacheService,
   );
 
   beforeEach(() => jest.clearAllMocks());

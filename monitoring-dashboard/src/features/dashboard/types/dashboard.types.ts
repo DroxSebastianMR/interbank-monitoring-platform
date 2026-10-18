@@ -42,6 +42,21 @@ export interface ActivityItem {
 export interface DashboardTopology {
   source: string;
   observedAt: string | null;
-  nodes: Array<{ id: string; kind: string; status: string }>;
+  sampling: {
+    recommendedIntervalMs: number;
+    frequencyHz: number;
+  };
+  nodes: Array<{
+    id: string;
+    kind: string;
+    status: string;
+    telemetrySource: string;
+    observedAt: string | null;
+    sampleAgeMs: number | null;
+    latencyMs: number | null;
+    latencyP95Ms: number | null;
+    requestRateHz: number | null;
+    errorRate: number | null;
+  }>;
   edges: Array<{ from: string; to: string }>;
 }

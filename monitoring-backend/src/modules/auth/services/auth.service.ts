@@ -25,6 +25,7 @@ import type {
 } from '@/modules/auth/types/auth.types';
 import { PasswordService } from '@/modules/auth/services/password.service';
 import { TokenService } from '@/modules/auth/services/token.service';
+import { AuthPrincipalCacheService } from '@/modules/auth/services/auth-principal-cache.service';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly repository: AuthRepository,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
+    private readonly principalCache: AuthPrincipalCacheService,
     configService: ConfigService,
   ) {
     this.config = configService.getOrThrow<AuthConfig>('auth');
@@ -80,6 +82,8 @@ export class AuthService {
     );
     if (!rotated) throw new InvalidSessionException();
 
+    await this.principalCache.set(current.sessionId, current.employee);
+
     return this.buildResponse(current.employee, current.sessionId, nextRefreshToken);
   }
 
@@ -88,6 +92,7 @@ export class AuthService {
     metadata: RequestMetadata,
   ): Promise<LogoutResponseDto> {
     await this.repository.revokeSession(principal.sessionId, principal.id, metadata);
+    await this.principalCache.invalidateSession(principal.sessionId, principal.id);
     return { loggedOut: true };
   }
 
@@ -115,6 +120,7 @@ export class AuthService {
     metadata: RequestMetadata,
   ): Promise<LogoutResponseDto> {
     await this.repository.revokeOwnSession(principal.id, sessionId, metadata);
+    await this.principalCache.invalidateSession(sessionId, principal.id);
     return { loggedOut: true };
   }
 
@@ -123,6 +129,7 @@ export class AuthService {
     metadata: RequestMetadata,
   ): Promise<LogoutResponseDto> {
     await this.repository.revokeAllSessions(principal.id, metadata);
+    await this.principalCache.invalidateEmployee(principal.id);
     return { loggedOut: true };
   }
 
@@ -142,6 +149,7 @@ export class AuthService {
     if (!matches || !currentHash) throw new InvalidCredentialsException();
     const nextHash = await this.passwordService.hash(input.newPassword);
     await this.repository.updatePasswordAndRevokeSessions(principal.id, nextHash, metadata);
+    await this.principalCache.invalidateEmployee(principal.id);
     return { loggedOut: true };
   }
 
@@ -158,6 +166,7 @@ export class AuthService {
       this.refreshTokenExpiresAt(),
       metadata,
     );
+    await this.principalCache.set(sessionId, employee);
     return this.buildResponse(employee, sessionId, refreshToken);
   }
 

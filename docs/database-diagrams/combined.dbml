@@ -73,6 +73,21 @@ Enum "app"."TransactionStatus" {
   "REVERSED"
 }
 
+Enum "app"."LoanApplicationStatus" {
+  "PENDING_REVIEW"
+  "CANCELLED"
+  "REJECTED"
+  "APPROVED"
+}
+
+Enum "app"."PromotionCategory" {
+  "DINING"
+  "ENTERTAINMENT"
+  "SHOPPING"
+  "TRAVEL"
+  "OTHER"
+}
+
 Enum "app"."ServiceProviderStatus" {
   "ACTIVE"
   "INACTIVE"
@@ -95,6 +110,18 @@ Enum "app"."ServiceDebtStatus" {
   "CANCELLED"
 }
 
+Enum "app"."PromotionRedemptionMethod" {
+  "SHOW_CODE"
+  "ONLINE_CODE"
+  "AUTOMATIC"
+}
+
+Enum "app"."PromotionVoucherStatus" {
+  "ISSUED"
+  "USED"
+  "EXPIRED"
+}
+
 Table "app"."users" {
   "id" UUID [not null]
   "documentNumber" VARCHAR(8) [not null]
@@ -102,6 +129,9 @@ Table "app"."users" {
   "passwordHash" TEXT [not null]
   "firstName" VARCHAR(100)
   "lastName" VARCHAR(100)
+  "phoneNumber" VARCHAR(9)
+  "phoneVerifiedAt" TIMESTAMP(3)
+  "marketingOptIn" BOOLEAN [not null, default: false]
   "status" app.UserStatus [not null, default: 'ACTIVE']
   "lastLoginAt" TIMESTAMP(3)
   "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
@@ -111,7 +141,208 @@ Table "app"."users" {
     id [pk, name: "users_pkey"]
     documentNumber [unique, name: "users_documentNumber_key"]
     email [unique, name: "users_email_key"]
+    phoneNumber [unique, name: "users_phoneNumber_key"]
     (documentNumber, email) [name: "users_documentNumber_email_idx"]
+  }
+}
+
+Table "app"."customer_details" {
+  "userId" UUID [not null]
+  "preferredName" VARCHAR(100)
+  "occupation" VARCHAR(100)
+  "nationalityCode" CHAR(2)
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    userId [pk, name: "customer_details_pkey"]
+  }
+}
+
+Table "app"."customer_addresses" {
+  "id" UUID [not null]
+  "userId" UUID [not null]
+  "label" VARCHAR(40) [not null]
+  "line1" VARCHAR(200) [not null]
+  "district" VARCHAR(100) [not null]
+  "province" VARCHAR(100) [not null]
+  "department" VARCHAR(100) [not null]
+  "countryCode" CHAR(2) [not null, default: 'PE']
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "customer_addresses_pkey"]
+    (userId, createdAt) [name: "customer_addresses_userId_createdAt_idx"]
+  }
+}
+
+Table "app"."phone_challenges" {
+  "userId" UUID [not null]
+  "phoneNumber" VARCHAR(9) [not null]
+  "codeHash" CHAR(64) [not null]
+  "salt" CHAR(32) [not null]
+  "expiresAt" TIMESTAMP(3) [not null]
+  "attempts" INTEGER [not null, default: 0]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    userId [pk, name: "phone_challenges_pkey"]
+  }
+}
+
+Table "app"."plin_enrollments" {
+  "userId" UUID [not null]
+  "phoneNumber" VARCHAR(9) [not null]
+  "accountId" UUID [not null]
+  "isActive" BOOLEAN [not null, default: true]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    userId [pk, name: "plin_enrollments_pkey"]
+    phoneNumber [unique, name: "plin_enrollments_phoneNumber_key"]
+    accountId [name: "plin_enrollments_accountId_idx"]
+  }
+}
+
+Table "app"."plin_payments" {
+  "id" UUID [not null]
+  "userId" UUID [not null]
+  "transferId" UUID [not null]
+  "recipientPhone" VARCHAR(9) [not null]
+  "senderPhone" VARCHAR(9)
+  "idempotencyKey" VARCHAR(80) [not null]
+  "requestFingerprint" CHAR(64) [not null]
+  "amount" DECIMAL(14,2) [not null]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "plin_payments_pkey"]
+    transferId [unique, name: "plin_payments_transferId_key"]
+    (userId, createdAt) [name: "plin_payments_userId_createdAt_idx"]
+    (userId, idempotencyKey) [unique, name: "plin_payments_userId_idempotencyKey_key"]
+  }
+}
+
+Table "app"."plin_favorites" {
+  "userId" UUID [not null]
+  "phoneNumber" VARCHAR(9) [not null]
+  "alias" VARCHAR(80)
+  "preferredNetwork" VARCHAR(12) [not null, default: 'PLIN']
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    (userId, phoneNumber) [pk, name: "plin_favorites_pkey"]
+    (userId, updatedAt) [name: "plin_favorites_userId_updatedAt_idx"]
+  }
+}
+
+Table "app"."loan_applications" {
+  "id" UUID [not null]
+  "userId" UUID [not null]
+  "destinationAccountId" UUID [not null]
+  "idempotencyKey" VARCHAR(80) [not null]
+  "requestFingerprint" CHAR(64) [not null]
+  "principal" DECIMAL(14,2) [not null]
+  "annualEffectiveRate" DECIMAL(7,4) [not null]
+  "monthlyPayment" DECIMAL(14,2) [not null]
+  "totalRepayment" DECIMAL(14,2) [not null]
+  "months" INTEGER [not null]
+  "status" app.LoanApplicationStatus [not null, default: 'PENDING_REVIEW']
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "loan_applications_pkey"]
+    (userId, createdAt) [name: "loan_applications_userId_createdAt_idx"]
+    (userId, idempotencyKey) [unique, name: "loan_applications_userId_idempotencyKey_key"]
+  }
+}
+
+Table "app"."promotions" {
+  "id" UUID [not null]
+  "title" VARCHAR(120) [not null]
+  "description" VARCHAR(500) [not null]
+  "category" app.PromotionCategory [not null]
+  "imageUrl" VARCHAR(500)
+  "termsUrl" VARCHAR(500)
+  "startsAt" TIMESTAMP(3) [not null]
+  "endsAt" TIMESTAMP(3) [not null]
+  "isActive" BOOLEAN [not null, default: true]
+  "priority" INTEGER [not null, default: 0]
+  "merchantId" UUID
+  "redemptionMethod" app.PromotionRedemptionMethod [not null, default: 'AUTOMATIC']
+  "codePrefix" VARCHAR(12)
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "promotions_pkey"]
+    (isActive, startsAt, endsAt, priority) [name: "promotions_isActive_startsAt_endsAt_priority_idx"]
+    merchantId [name: "promotions_merchantId_idx"]
+  }
+}
+
+Table "app"."promotion_merchants" {
+  "id" UUID [not null]
+  "name" VARCHAR(120) [not null]
+  "logoUrl" VARCHAR(500)
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "promotion_merchants_pkey"]
+    name [unique, name: "promotion_merchants_name_key"]
+  }
+}
+
+Table "app"."promotion_vouchers" {
+  "id" UUID [not null]
+  "promotionId" UUID [not null]
+  "userId" UUID [not null]
+  "code" VARCHAR(40) [not null]
+  "status" app.PromotionVoucherStatus [not null, default: 'ISSUED']
+  "issuedAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "expiresAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "promotion_vouchers_pkey"]
+    code [unique, name: "promotion_vouchers_code_key"]
+    (userId, issuedAt) [name: "promotion_vouchers_userId_issuedAt_idx"]
+    (promotionId, userId) [unique, name: "promotion_vouchers_promotionId_userId_key"]
+  }
+}
+
+Table "app"."promotion_favorites" {
+  "userId" UUID [not null]
+  "promotionId" UUID [not null]
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (userId, promotionId) [pk, name: "promotion_favorites_pkey"]
+    promotionId [name: "promotion_favorites_promotionId_idx"]
+  }
+}
+
+Table "app"."biometric_credentials" {
+  "id" UUID [not null]
+  "userId" UUID [not null]
+  "deviceId" VARCHAR(128) [not null]
+  "tokenHash" CHAR(64) [not null]
+  "credentialProof" VARCHAR(64) [not null]
+  "expiresAt" TIMESTAMP(3) [not null]
+  "lastUsedAt" TIMESTAMP(3)
+  "revokedAt" TIMESTAMP(3)
+  "createdAt" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "biometric_credentials_pkey"]
+    tokenHash [unique, name: "biometric_credentials_tokenHash_key"]
+    expiresAt [name: "biometric_credentials_expiresAt_idx"]
+    (userId, deviceId) [unique, name: "biometric_credentials_userId_deviceId_key"]
   }
 }
 
@@ -416,6 +647,38 @@ Table "app"."saved_service_payments" {
   }
 }
 
+Ref "customer_details_userId_fkey":"app"."users"."id" <? "app"."customer_details"."userId" [update: cascade, delete: cascade]
+
+Ref "customer_addresses_userId_fkey":"app"."users"."id" <? "app"."customer_addresses"."userId" [update: cascade, delete: cascade]
+
+Ref "phone_challenges_userId_fkey":"app"."users"."id" <? "app"."phone_challenges"."userId" [update: cascade, delete: cascade]
+
+Ref "plin_enrollments_userId_fkey":"app"."users"."id" <? "app"."plin_enrollments"."userId" [update: cascade, delete: cascade]
+
+Ref "plin_enrollments_accountId_userId_fkey":"app"."accounts".("id", "userId") <? "app"."plin_enrollments".("accountId", "userId") [update: cascade, delete: restrict]
+
+Ref "plin_payments_userId_fkey":"app"."users"."id" <? "app"."plin_payments"."userId" [update: cascade, delete: restrict]
+
+Ref "plin_payments_transferId_fkey":"app"."transfers"."id" <? "app"."plin_payments"."transferId" [update: cascade, delete: restrict]
+
+Ref "plin_favorites_userId_fkey":"app"."users"."id" <? "app"."plin_favorites"."userId" [update: cascade, delete: cascade]
+
+Ref "loan_applications_userId_fkey":"app"."users"."id" <? "app"."loan_applications"."userId" [update: cascade, delete: restrict]
+
+Ref "loan_applications_destinationAccountId_userId_fkey":"app"."accounts".("id", "userId") <? "app"."loan_applications".("destinationAccountId", "userId") [update: cascade, delete: restrict]
+
+Ref "promotions_merchantId_fkey":"app"."promotion_merchants"."id" ?<? "app"."promotions"."merchantId" [update: cascade, delete: set null]
+
+Ref "promotion_vouchers_promotionId_fkey":"app"."promotions"."id" <? "app"."promotion_vouchers"."promotionId" [update: cascade, delete: restrict]
+
+Ref "promotion_vouchers_userId_fkey":"app"."users"."id" <? "app"."promotion_vouchers"."userId" [update: cascade, delete: restrict]
+
+Ref "promotion_favorites_userId_fkey":"app"."users"."id" <? "app"."promotion_favorites"."userId" [update: cascade, delete: cascade]
+
+Ref "promotion_favorites_promotionId_fkey":"app"."promotions"."id" <? "app"."promotion_favorites"."promotionId" [update: cascade, delete: cascade]
+
+Ref "biometric_credentials_userId_fkey":"app"."users"."id" <? "app"."biometric_credentials"."userId" [update: cascade, delete: cascade]
+
 Ref "accounts_userId_fkey":"app"."users"."id" <? "app"."accounts"."userId" [update: cascade, delete: cascade]
 
 Ref "accounts_accountTypeId_type_fkey":"app"."account_types".("id", "type") <? "app"."accounts".("accountTypeId", "type") [update: cascade, delete: restrict]
@@ -672,6 +935,55 @@ Table "monitoring"."Alert" {
   }
 }
 
+Table "monitoring"."assistant_conversations" {
+  "id" UUID [not null]
+  "employee_id" UUID [not null]
+  "title" VARCHAR(120) [not null]
+  "archived_at" TIMESTAMP(3)
+  "deleted_at" TIMESTAMP(3)
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "assistant_conversations_pkey"]
+    (employee_id, deleted_at, updated_at) [name: "assistant_conversations_employee_id_deleted_at_updated_at_idx"]
+  }
+}
+
+Table "monitoring"."assistant_messages" {
+  "id" UUID [not null]
+  "conversation_id" UUID [not null]
+  "role" VARCHAR(20) [not null]
+  "content" TEXT [not null]
+  "provider" VARCHAR(40)
+  "evidence" JSONB
+  "feedback" VARCHAR(20)
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "assistant_messages_pkey"]
+    (conversation_id, created_at, id) [name: "assistant_messages_conversation_id_created_at_id_idx"]
+  }
+}
+
+Table "monitoring"."assistant_runs" {
+  "id" UUID [not null]
+  "message_id" UUID [not null]
+  "provider" VARCHAR(40) [not null]
+  "model" VARCHAR(120)
+  "status" VARCHAR(20) [not null]
+  "latency_ms" INTEGER [not null]
+  "prompt_tokens" INTEGER
+  "completion_tokens" INTEGER
+  "prompt_version" VARCHAR(30) [not null]
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "assistant_runs_pkey"]
+    message_id [unique, name: "assistant_runs_message_id_key"]
+  }
+}
+
 Ref "employee_roles_employee_id_fkey":"monitoring"."employees"."id" <? "monitoring"."employee_roles"."employee_id" [update: cascade, delete: cascade]
 
 Ref "employee_roles_role_id_fkey":"monitoring"."roles"."id" <? "monitoring"."employee_roles"."role_id" [update: cascade, delete: cascade]
@@ -689,3 +1001,9 @@ Ref "HealthCheck_serviceId_fkey":"monitoring"."MonitoredService"."id" <? "monito
 Ref "ServiceStateChange_serviceId_fkey":"monitoring"."MonitoredService"."id" <? "monitoring"."ServiceStateChange"."serviceId" [update: cascade, delete: cascade]
 
 Ref "Alert_incidentId_fkey":"monitoring"."Incident"."id" <? "monitoring"."Alert"."incidentId" [update: cascade, delete: cascade]
+
+Ref "assistant_conversations_employee_id_fkey":"monitoring"."employees"."id" <? "monitoring"."assistant_conversations"."employee_id" [update: cascade, delete: cascade]
+
+Ref "assistant_messages_conversation_id_fkey":"monitoring"."assistant_conversations"."id" <? "monitoring"."assistant_messages"."conversation_id" [update: cascade, delete: cascade]
+
+Ref "assistant_runs_message_id_fkey":"monitoring"."assistant_messages"."id" <? "monitoring"."assistant_runs"."message_id" [update: cascade, delete: cascade]

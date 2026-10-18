@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsDateString,
   IsIn,
@@ -36,6 +37,7 @@ export class DashboardMetricsQueryDto {
 export class DashboardActivityQueryDto {
   @ApiPropertyOptional({ default: 20, maximum: 100 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)

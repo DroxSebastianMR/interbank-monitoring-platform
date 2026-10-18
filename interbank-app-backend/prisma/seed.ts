@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
 import { SimulatedCciPolicy } from '@/modules/accounts/policies/simulated-cci.policy';
 import { seedAccountCatalog, seedDemoCards } from './seeds/accounts.seed';
+import { seedDemoPromotions } from './seeds/promotions.seed';
 
 const prisma = new PrismaClient();
 
@@ -159,6 +160,7 @@ const agreementSeeds = [
 
 async function main() {
   await seedAccountCatalog(prisma);
+  await seedDemoPromotions(prisma);
   const passwordHash = await hash('DemoSecure123!', 12);
 
   const user = await prisma.user.upsert({

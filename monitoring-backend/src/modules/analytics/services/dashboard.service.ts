@@ -5,8 +5,11 @@ import { DashboardRepository } from '@/modules/analytics/repositories/dashboard.
 import { MonitoredServicesService } from '@/modules/monitored-services/services/monitored-services.service';
 import { ServiceStatus } from '@/modules/service-state/interfaces/service-state';
 import type { DashboardMetricsQueryDto } from '@/modules/analytics/dto/dashboard-query.dto';
+import { PrometheusMetricsService } from '@/modules/monitoring/services/prometheus-metrics.service';
 
 const STALE_AFTER_MS = 30_000;
+const TOPOLOGY_REFRESH_INTERVAL_MS = 10_000;
+const TOPOLOGY_INSTANCE_IDS = ['app-backend-1', 'app-backend-2'] as const;
 
 @Injectable()
 export class DashboardService {
@@ -14,6 +17,7 @@ export class DashboardService {
     private readonly repository: DashboardRepository,
     private readonly services: MonitoredServicesService,
     private readonly config: ConfigService,
+    private readonly prometheus: PrometheusMetricsService,
   ) {}
 
   async overview() {
@@ -145,14 +149,61 @@ export class DashboardService {
       .slice(0, limit);
   }
 
-  topology() {
+  async topology() {
+    const now = Date.now();
+    const telemetry = await this.prometheus.readInfrastructure([...TOPOLOGY_INSTANCE_IDS]);
+    const latencyThresholdMs = this.config.get<number>('rules.latencyThresholdMs', 1_000);
+    const statusForInstance = (id: string) => {
+      const sample = telemetry.instances.find((item) => item.id === id);
+      if (!sample || now - new Date(sample.observedAt).getTime() > STALE_AFTER_MS) return 'NO_DATA';
+      if (!sample.reachable) return 'UNAVAILABLE';
+      if (
+        (sample.latencyP95Ms !== null && sample.latencyP95Ms > latencyThresholdMs) ||
+        (sample.errorRate !== null && sample.errorRate >= 0.05)
+      )
+        return 'DEGRADED';
+      return 'OPERATIONAL';
+    };
+    const instanceNodes = TOPOLOGY_INSTANCE_IDS.map((id) => {
+      const sample = telemetry.instances.find((item) => item.id === id);
+      return {
+        id,
+        kind: 'instance',
+        status: statusForInstance(id),
+        telemetrySource: sample ? 'prometheus' : 'none',
+        observedAt: sample?.observedAt ?? null,
+        sampleAgeMs: sample ? Math.max(0, now - new Date(sample.observedAt).getTime()) : null,
+        latencyMs: null,
+        latencyP95Ms: sample?.latencyP95Ms ?? null,
+        requestRateHz: sample?.requestRateHz ?? null,
+        errorRate: sample?.errorRate ?? null,
+      };
+    });
+    const observations = [
+      telemetry.gateway.observedAt,
+      ...telemetry.instances.map((item) => item.observedAt),
+    ].sort();
     return {
-      source: 'configured-laboratory-topology',
-      observedAt: null,
+      source: 'active-probe-and-prometheus',
+      observedAt: observations.at(-1) ?? null,
+      sampling: {
+        recommendedIntervalMs: TOPOLOGY_REFRESH_INTERVAL_MS,
+        frequencyHz: 1_000 / TOPOLOGY_REFRESH_INTERVAL_MS,
+      },
       nodes: [
-        { id: 'nginx', kind: 'gateway', status: 'NO_DATA' },
-        { id: 'app-backend-1', kind: 'instance', status: 'NO_DATA' },
-        { id: 'app-backend-2', kind: 'instance', status: 'NO_DATA' },
+        {
+          id: 'nginx',
+          kind: 'gateway',
+          status: telemetry.gateway.reachable ? 'OPERATIONAL' : 'UNAVAILABLE',
+          telemetrySource: 'active-health-probe',
+          observedAt: telemetry.gateway.observedAt,
+          sampleAgeMs: Math.max(0, now - new Date(telemetry.gateway.observedAt).getTime()),
+          latencyMs: telemetry.gateway.latencyMs,
+          latencyP95Ms: null,
+          requestRateHz: null,
+          errorRate: null,
+        },
+        ...instanceNodes,
       ],
       edges: [
         { from: 'nginx', to: 'app-backend-1' },
