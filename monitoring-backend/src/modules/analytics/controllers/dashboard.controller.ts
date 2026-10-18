@@ -41,7 +41,9 @@ export class DashboardController {
 
   @Get('topology')
   @RequirePermissions(PermissionCode.DASHBOARD_READ)
-  @ApiOperation({ summary: 'Topología configurada; estado de instancias no instrumentado' })
+  @ApiOperation({
+    summary: 'Topología con sonda activa de NGINX y telemetría Prometheus por instancia',
+  })
   topology() {
     return this.service.topology();
   }

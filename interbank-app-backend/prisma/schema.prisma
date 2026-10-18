@@ -103,6 +103,25 @@ enum TransactionStatus {
   @@schema("app")
 }
 
+enum LoanApplicationStatus {
+  PENDING_REVIEW
+  CANCELLED
+  REJECTED
+  APPROVED
+
+  @@schema("app")
+}
+
+enum PromotionCategory {
+  DINING
+  ENTERTAINMENT
+  SHOPPING
+  TRAVEL
+  OTHER
+
+  @@schema("app")
+}
+
 enum ServiceProviderStatus {
   ACTIVE
   INACTIVE
@@ -131,6 +150,22 @@ enum ServiceDebtStatus {
   @@schema("app")
 }
 
+enum PromotionRedemptionMethod {
+  SHOW_CODE
+  ONLINE_CODE
+  AUTOMATIC
+
+  @@schema("app")
+}
+
+enum PromotionVoucherStatus {
+  ISSUED
+  USED
+  EXPIRED
+
+  @@schema("app")
+}
+
 model User {
   id                   String                @id @default(uuid()) @db.Uuid
   documentNumber       String                @unique @db.VarChar(8)
@@ -138,6 +173,9 @@ model User {
   passwordHash         String
   firstName            String?               @db.VarChar(100)
   lastName             String?               @db.VarChar(100)
+  phoneNumber          String?               @unique @db.VarChar(9)
+  phoneVerifiedAt      DateTime?
+  marketingOptIn       Boolean               @default(false)
   status               UserStatus            @default(ACTIVE)
   lastLoginAt          DateTime?
   createdAt            DateTime              @default(now())
@@ -148,9 +186,203 @@ model User {
   servicePayments      ServicePayment[]
   savedServicePayments SavedServicePayment[]
   biometricCredentials BiometricCredential[]
+  phoneChallenge       PhoneChallenge?
+  plinEnrollment       PlinEnrollment?
+  plinPayments         PlinPayment[]         @relation("PlinSender")
+  loanApplications     LoanApplication[]
+  favoritePromotions   PromotionFavorite[]
+  customerDetails      CustomerDetails?
+  addresses            CustomerAddress[]
+  plinFavorites        PlinFavorite[]
+  promotionVouchers    PromotionVoucher[]
 
   @@index([documentNumber, email])
   @@map("users")
+  @@schema("app")
+}
+
+model CustomerDetails {
+  userId          String   @id @db.Uuid
+  preferredName   String?  @db.VarChar(100)
+  occupation      String?  @db.VarChar(100)
+  nationalityCode String?  @db.Char(2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customer_details")
+  @@schema("app")
+}
+
+model CustomerAddress {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  label       String   @db.VarChar(40)
+  line1       String   @db.VarChar(200)
+  district    String   @db.VarChar(100)
+  province    String   @db.VarChar(100)
+  department  String   @db.VarChar(100)
+  countryCode String   @default("PE") @db.Char(2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("customer_addresses")
+  @@schema("app")
+}
+
+model PhoneChallenge {
+  userId      String   @id @db.Uuid
+  phoneNumber String   @db.VarChar(9)
+  codeHash    String   @db.Char(64)
+  salt        String   @db.Char(32)
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("phone_challenges")
+  @@schema("app")
+}
+
+model PlinEnrollment {
+  userId      String   @id @db.Uuid
+  phoneNumber String   @unique @db.VarChar(9)
+  accountId   String   @db.Uuid
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account     Account  @relation(fields: [accountId, userId], references: [id, userId], onDelete: Restrict)
+
+  @@index([accountId])
+  @@map("plin_enrollments")
+  @@schema("app")
+}
+
+model PlinPayment {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @db.Uuid
+  transferId         String   @unique @db.Uuid
+  recipientPhone     String   @db.VarChar(9)
+  senderPhone        String?  @db.VarChar(9)
+  idempotencyKey     String   @db.VarChar(80)
+  requestFingerprint String   @db.Char(64)
+  amount             Decimal  @db.Decimal(14, 2)
+  createdAt          DateTime @default(now())
+  user               User     @relation("PlinSender", fields: [userId], references: [id], onDelete: Restrict)
+  transfer           Transfer @relation(fields: [transferId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("plin_payments")
+  @@schema("app")
+}
+
+model PlinFavorite {
+  userId           String   @db.Uuid
+  phoneNumber      String   @db.VarChar(9)
+  alias            String?  @db.VarChar(80)
+  preferredNetwork String   @default("PLIN") @db.VarChar(12)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, phoneNumber])
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("plin_favorites")
+  @@schema("app")
+}
+
+model LoanApplication {
+  id                   String                @id @default(uuid()) @db.Uuid
+  userId               String                @db.Uuid
+  destinationAccountId String                @db.Uuid
+  idempotencyKey       String                @db.VarChar(80)
+  requestFingerprint   String                @db.Char(64)
+  principal            Decimal               @db.Decimal(14, 2)
+  annualEffectiveRate  Decimal               @db.Decimal(7, 4)
+  monthlyPayment       Decimal               @db.Decimal(14, 2)
+  totalRepayment       Decimal               @db.Decimal(14, 2)
+  months               Int
+  status               LoanApplicationStatus @default(PENDING_REVIEW)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  destinationAccount   Account               @relation(fields: [destinationAccountId, userId], references: [id, userId], onDelete: Restrict)
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("loan_applications")
+  @@schema("app")
+}
+
+model Promotion {
+  id               String                    @id @default(uuid()) @db.Uuid
+  title            String                    @db.VarChar(120)
+  description      String                    @db.VarChar(500)
+  category         PromotionCategory
+  imageUrl         String?                   @db.VarChar(500)
+  termsUrl         String?                   @db.VarChar(500)
+  startsAt         DateTime
+  endsAt           DateTime
+  isActive         Boolean                   @default(true)
+  priority         Int                       @default(0)
+  merchantId       String?                   @db.Uuid
+  redemptionMethod PromotionRedemptionMethod @default(AUTOMATIC)
+  codePrefix       String?                   @db.VarChar(12)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  favorites        PromotionFavorite[]
+  vouchers         PromotionVoucher[]
+  merchant         PromotionMerchant?        @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, startsAt, endsAt, priority])
+  @@index([merchantId])
+  @@map("promotions")
+  @@schema("app")
+}
+
+model PromotionMerchant {
+  id         String      @id @default(uuid()) @db.Uuid
+  name       String      @unique @db.VarChar(120)
+  logoUrl    String?     @db.VarChar(500)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  promotions Promotion[]
+
+  @@map("promotion_merchants")
+  @@schema("app")
+}
+
+model PromotionVoucher {
+  id          String                 @id @default(uuid()) @db.Uuid
+  promotionId String                 @db.Uuid
+  userId      String                 @db.Uuid
+  code        String                 @unique @db.VarChar(40)
+  status      PromotionVoucherStatus @default(ISSUED)
+  issuedAt    DateTime               @default(now())
+  expiresAt   DateTime
+  promotion   Promotion              @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([promotionId, userId])
+  @@index([userId, issuedAt(sort: Desc)])
+  @@map("promotion_vouchers")
+  @@schema("app")
+}
+
+model PromotionFavorite {
+  userId      String    @db.Uuid
+  promotionId String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, promotionId])
+  @@index([promotionId])
+  @@map("promotion_favorites")
   @@schema("app")
 }
 
@@ -194,6 +426,8 @@ model Account {
   servicePayments   ServicePayment[]
   accountType       AccountTypeDefinition @relation(fields: [accountTypeId, type], references: [id, type], onDelete: Restrict)
   cardLinks         AccountCard[]
+  plinEnrollments   PlinEnrollment[]
+  loanApplications  LoanApplication[]
 
   @@unique([id, userId])
   @@index([userId, currency])
@@ -336,6 +570,7 @@ model Transfer {
   destinationAccount   Account           @relation("TransferDestination", fields: [destinationAccountId], references: [id])
   transactions         Transaction[]
   user                 User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  plinPayment          PlinPayment?
 
   @@unique([userId, idempotencyKey])
   @@index([userId, createdAt(sort: Desc), id(sort: Desc)])

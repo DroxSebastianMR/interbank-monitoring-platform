@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import type { AuthRepository } from '@/modules/auth/repositories/auth.repository';
 import type { TokenService } from '@/modules/auth/services/token.service';
+import type { AuthPrincipalCacheService } from '@/modules/auth/services/auth-principal-cache.service';
 import type { EmployeePrincipal } from '@/modules/auth/types/auth.types';
 
 const principal = { id: 'employee-1', sessionId: 'session-1' } as EmployeePrincipal;
@@ -15,6 +16,9 @@ describe('AuthService security operations', () => {
     listActiveSessions: jest.fn(),
   };
   const passwords = { compare: jest.fn(), hash: jest.fn() };
+  const principalCache = {
+    invalidateEmployee: jest.fn(),
+  };
   const config = {
     getOrThrow: jest.fn().mockReturnValue({ maxFailedAttempts: 5, lockMinutes: 15 }),
   };
@@ -22,6 +26,7 @@ describe('AuthService security operations', () => {
     repository as unknown as AuthRepository,
     passwords,
     {} as TokenService,
+    principalCache as unknown as AuthPrincipalCacheService,
     config as unknown as ConfigService,
   );
 
@@ -59,5 +64,6 @@ describe('AuthService security operations', () => {
       'next-hash',
       {},
     );
+    expect(principalCache.invalidateEmployee).toHaveBeenCalledWith('employee-1');
   });
 });

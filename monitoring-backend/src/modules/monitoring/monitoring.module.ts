@@ -22,5 +22,6 @@ import { PrometheusMetricsService } from '@/modules/monitoring/services/promethe
   ],
   controllers: [MonitoringController],
   providers: [MonitoringService, MetricWindowService, PrometheusMetricsService],
+  exports: [PrometheusMetricsService],
 })
 export class MonitoringModule {}

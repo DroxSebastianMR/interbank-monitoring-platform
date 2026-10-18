@@ -32,11 +32,13 @@ function endpointPlan(method, path) {
   }
   if (!includeWrites) return { skip: 'requiere MONITOR_BENCH_INCLUDE_WRITES=1' };
   if (method === 'post' && path === '/auth/login') {
-    const corporateEmail = process.env.MONITOR_BENCH_EMAIL;
-    const password = process.env.MONITOR_BENCH_PASSWORD;
+    const corporateEmail = process.env.MONITOR_BENCH_EMAIL ?? process.env.DASHBOARD_ADMIN_EMAIL;
+    const password = process.env.MONITOR_BENCH_PASSWORD ?? process.env.DASHBOARD_ADMIN_PASSWORD;
     return corporateEmail && password
       ? { samples: 1, body: { corporateEmail, password } }
-      : { skip: 'faltan MONITOR_BENCH_EMAIL y MONITOR_BENCH_PASSWORD' };
+      : {
+          skip: 'faltan MONITOR_BENCH_EMAIL/MONITOR_BENCH_PASSWORD o las credenciales admin locales',
+        };
   }
   if (method === 'post' && path === '/auth/refresh') {
     return refreshToken

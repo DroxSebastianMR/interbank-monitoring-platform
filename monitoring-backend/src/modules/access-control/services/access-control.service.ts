@@ -15,6 +15,7 @@ import type { CreateEmployeeDto } from '@/modules/access-control/dto/create-empl
 import type { CreateRoleDto, UpdateRoleDto } from '@/modules/access-control/dto/create-role.dto';
 import { AccessControlRepository } from '@/modules/access-control/repositories/access-control.repository';
 import { RedisService } from '@/redis/redis.service';
+import { AuthPrincipalCacheService } from '@/modules/auth/services/auth-principal-cache.service';
 
 const CATALOG_TTL_SECONDS = 60;
 const ROLES_CACHE_KEY = 'monitoring:access-control:roles:v1';
@@ -27,6 +28,7 @@ export class AccessControlService {
     private readonly authRepository: AuthRepository,
     private readonly passwords: PasswordService,
     private readonly redis: RedisService,
+    private readonly principalCache: AuthPrincipalCacheService,
   ) {}
 
   roles(): Promise<RoleDto[]> {
@@ -92,14 +94,21 @@ export class AccessControlService {
     return this.repository.createEmployee(input, passwordHash, actor, metadata);
   }
 
-  updateEmployeeStatus(
+  async updateEmployeeStatus(
     employeeId: string,
     status: EmployeeStatus,
     actor: EmployeePrincipal,
     metadata: RequestMetadata,
   ): Promise<EmployeeSummaryDto> {
     this.ensureAdministrator(actor);
-    return this.repository.updateEmployeeStatus(employeeId, status, actor, metadata);
+    const employee = await this.repository.updateEmployeeStatus(
+      employeeId,
+      status,
+      actor,
+      metadata,
+    );
+    await this.principalCache.invalidateEmployee(employeeId);
+    return employee;
   }
 
   async assignRoles(
@@ -110,6 +119,7 @@ export class AccessControlService {
   ): Promise<EmployeeRolesUpdatedDto> {
     this.ensureAdministrator(actor);
     await this.repository.replaceEmployeeRoles(employeeId, roleCodes, actor, metadata);
+    await this.principalCache.invalidateEmployee(employeeId);
     const employee = await this.authRepository.findEmployeeById(employeeId);
     if (!employee) throw new NotFoundException('Empleado no encontrado');
     return employee;

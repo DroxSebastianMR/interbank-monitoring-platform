@@ -39,6 +39,12 @@ CREATE TYPE "app"."TransactionDirection" AS ENUM ('CREDIT', 'DEBIT');
 CREATE TYPE "app"."TransactionStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED', 'REVERSED');
 
 -- CreateEnum
+CREATE TYPE "app"."LoanApplicationStatus" AS ENUM ('PENDING_REVIEW', 'CANCELLED', 'REJECTED', 'APPROVED');
+
+-- CreateEnum
+CREATE TYPE "app"."PromotionCategory" AS ENUM ('DINING', 'ENTERTAINMENT', 'SHOPPING', 'TRAVEL', 'OTHER');
+
+-- CreateEnum
 CREATE TYPE "app"."ServiceProviderStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'MAINTENANCE');
 
 -- CreateEnum
@@ -46,6 +52,12 @@ CREATE TYPE "app"."PaymentReferenceType" AS ENUM ('CUSTOMER_CODE', 'SUPPLY_NUMBE
 
 -- CreateEnum
 CREATE TYPE "app"."ServiceDebtStatus" AS ENUM ('PENDING', 'PAID', 'EXPIRED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "app"."PromotionRedemptionMethod" AS ENUM ('SHOW_CODE', 'ONLINE_CODE', 'AUTOMATIC');
+
+-- CreateEnum
+CREATE TYPE "app"."PromotionVoucherStatus" AS ENUM ('ISSUED', 'USED', 'EXPIRED');
 
 -- CreateTable
 CREATE TABLE "app"."users" (
@@ -55,12 +67,184 @@ CREATE TABLE "app"."users" (
     "passwordHash" TEXT NOT NULL,
     "firstName" VARCHAR(100),
     "lastName" VARCHAR(100),
+    "phoneNumber" VARCHAR(9),
+    "phoneVerifiedAt" TIMESTAMP(3),
+    "marketingOptIn" BOOLEAN NOT NULL DEFAULT false,
     "status" "app"."UserStatus" NOT NULL DEFAULT 'ACTIVE',
     "lastLoginAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "app"."customer_details" (
+    "userId" UUID NOT NULL,
+    "preferredName" VARCHAR(100),
+    "occupation" VARCHAR(100),
+    "nationalityCode" CHAR(2),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "customer_details_pkey" PRIMARY KEY ("userId")
+);
+
+-- CreateTable
+CREATE TABLE "app"."customer_addresses" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "label" VARCHAR(40) NOT NULL,
+    "line1" VARCHAR(200) NOT NULL,
+    "district" VARCHAR(100) NOT NULL,
+    "province" VARCHAR(100) NOT NULL,
+    "department" VARCHAR(100) NOT NULL,
+    "countryCode" CHAR(2) NOT NULL DEFAULT 'PE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "customer_addresses_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "app"."phone_challenges" (
+    "userId" UUID NOT NULL,
+    "phoneNumber" VARCHAR(9) NOT NULL,
+    "codeHash" CHAR(64) NOT NULL,
+    "salt" CHAR(32) NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "phone_challenges_pkey" PRIMARY KEY ("userId")
+);
+
+-- CreateTable
+CREATE TABLE "app"."plin_enrollments" (
+    "userId" UUID NOT NULL,
+    "phoneNumber" VARCHAR(9) NOT NULL,
+    "accountId" UUID NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "plin_enrollments_pkey" PRIMARY KEY ("userId")
+);
+
+-- CreateTable
+CREATE TABLE "app"."plin_payments" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "transferId" UUID NOT NULL,
+    "recipientPhone" VARCHAR(9) NOT NULL,
+    "senderPhone" VARCHAR(9),
+    "idempotencyKey" VARCHAR(80) NOT NULL,
+    "requestFingerprint" CHAR(64) NOT NULL,
+    "amount" DECIMAL(14,2) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "plin_payments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "app"."plin_favorites" (
+    "userId" UUID NOT NULL,
+    "phoneNumber" VARCHAR(9) NOT NULL,
+    "alias" VARCHAR(80),
+    "preferredNetwork" VARCHAR(12) NOT NULL DEFAULT 'PLIN',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "plin_favorites_pkey" PRIMARY KEY ("userId","phoneNumber")
+);
+
+-- CreateTable
+CREATE TABLE "app"."loan_applications" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "destinationAccountId" UUID NOT NULL,
+    "idempotencyKey" VARCHAR(80) NOT NULL,
+    "requestFingerprint" CHAR(64) NOT NULL,
+    "principal" DECIMAL(14,2) NOT NULL,
+    "annualEffectiveRate" DECIMAL(7,4) NOT NULL,
+    "monthlyPayment" DECIMAL(14,2) NOT NULL,
+    "totalRepayment" DECIMAL(14,2) NOT NULL,
+    "months" INTEGER NOT NULL,
+    "status" "app"."LoanApplicationStatus" NOT NULL DEFAULT 'PENDING_REVIEW',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "loan_applications_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "app"."promotions" (
+    "id" UUID NOT NULL,
+    "title" VARCHAR(120) NOT NULL,
+    "description" VARCHAR(500) NOT NULL,
+    "category" "app"."PromotionCategory" NOT NULL,
+    "imageUrl" VARCHAR(500),
+    "termsUrl" VARCHAR(500),
+    "startsAt" TIMESTAMP(3) NOT NULL,
+    "endsAt" TIMESTAMP(3) NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "priority" INTEGER NOT NULL DEFAULT 0,
+    "merchantId" UUID,
+    "redemptionMethod" "app"."PromotionRedemptionMethod" NOT NULL DEFAULT 'AUTOMATIC',
+    "codePrefix" VARCHAR(12),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "promotions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "app"."promotion_merchants" (
+    "id" UUID NOT NULL,
+    "name" VARCHAR(120) NOT NULL,
+    "logoUrl" VARCHAR(500),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "promotion_merchants_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "app"."promotion_vouchers" (
+    "id" UUID NOT NULL,
+    "promotionId" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "code" VARCHAR(40) NOT NULL,
+    "status" "app"."PromotionVoucherStatus" NOT NULL DEFAULT 'ISSUED',
+    "issuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "promotion_vouchers_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "app"."promotion_favorites" (
+    "userId" UUID NOT NULL,
+    "promotionId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "promotion_favorites_pkey" PRIMARY KEY ("userId","promotionId")
+);
+
+-- CreateTable
+CREATE TABLE "app"."biometric_credentials" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "deviceId" VARCHAR(128) NOT NULL,
+    "tokenHash" CHAR(64) NOT NULL,
+    "credentialProof" VARCHAR(64) NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "lastUsedAt" TIMESTAMP(3),
+    "revokedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "biometric_credentials_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -316,7 +500,67 @@ CREATE UNIQUE INDEX "users_documentNumber_key" ON "app"."users"("documentNumber"
 CREATE UNIQUE INDEX "users_email_key" ON "app"."users"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_phoneNumber_key" ON "app"."users"("phoneNumber");
+
+-- CreateIndex
 CREATE INDEX "users_documentNumber_email_idx" ON "app"."users"("documentNumber", "email");
+
+-- CreateIndex
+CREATE INDEX "customer_addresses_userId_createdAt_idx" ON "app"."customer_addresses"("userId", "createdAt" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "plin_enrollments_phoneNumber_key" ON "app"."plin_enrollments"("phoneNumber");
+
+-- CreateIndex
+CREATE INDEX "plin_enrollments_accountId_idx" ON "app"."plin_enrollments"("accountId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "plin_payments_transferId_key" ON "app"."plin_payments"("transferId");
+
+-- CreateIndex
+CREATE INDEX "plin_payments_userId_createdAt_idx" ON "app"."plin_payments"("userId", "createdAt" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "plin_payments_userId_idempotencyKey_key" ON "app"."plin_payments"("userId", "idempotencyKey");
+
+-- CreateIndex
+CREATE INDEX "plin_favorites_userId_updatedAt_idx" ON "app"."plin_favorites"("userId", "updatedAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "loan_applications_userId_createdAt_idx" ON "app"."loan_applications"("userId", "createdAt" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "loan_applications_userId_idempotencyKey_key" ON "app"."loan_applications"("userId", "idempotencyKey");
+
+-- CreateIndex
+CREATE INDEX "promotions_isActive_startsAt_endsAt_priority_idx" ON "app"."promotions"("isActive", "startsAt", "endsAt", "priority");
+
+-- CreateIndex
+CREATE INDEX "promotions_merchantId_idx" ON "app"."promotions"("merchantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "promotion_merchants_name_key" ON "app"."promotion_merchants"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "promotion_vouchers_code_key" ON "app"."promotion_vouchers"("code");
+
+-- CreateIndex
+CREATE INDEX "promotion_vouchers_userId_issuedAt_idx" ON "app"."promotion_vouchers"("userId", "issuedAt" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "promotion_vouchers_promotionId_userId_key" ON "app"."promotion_vouchers"("promotionId", "userId");
+
+-- CreateIndex
+CREATE INDEX "promotion_favorites_promotionId_idx" ON "app"."promotion_favorites"("promotionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "biometric_credentials_tokenHash_key" ON "app"."biometric_credentials"("tokenHash");
+
+-- CreateIndex
+CREATE INDEX "biometric_credentials_expiresAt_idx" ON "app"."biometric_credentials"("expiresAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "biometric_credentials_userId_deviceId_key" ON "app"."biometric_credentials"("userId", "deviceId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "accounts_accountNumber_key" ON "app"."accounts"("accountNumber");
@@ -440,6 +684,54 @@ CREATE INDEX "saved_service_payments_userId_updatedAt_idx" ON "app"."saved_servi
 
 -- CreateIndex
 CREATE UNIQUE INDEX "saved_service_payments_userId_serviceAgreementId_customerRe_key" ON "app"."saved_service_payments"("userId", "serviceAgreementId", "customerReference");
+
+-- AddForeignKey
+ALTER TABLE "app"."customer_details" ADD CONSTRAINT "customer_details_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."customer_addresses" ADD CONSTRAINT "customer_addresses_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."phone_challenges" ADD CONSTRAINT "phone_challenges_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."plin_enrollments" ADD CONSTRAINT "plin_enrollments_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."plin_enrollments" ADD CONSTRAINT "plin_enrollments_accountId_userId_fkey" FOREIGN KEY ("accountId", "userId") REFERENCES "app"."accounts"("id", "userId") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."plin_payments" ADD CONSTRAINT "plin_payments_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."plin_payments" ADD CONSTRAINT "plin_payments_transferId_fkey" FOREIGN KEY ("transferId") REFERENCES "app"."transfers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."plin_favorites" ADD CONSTRAINT "plin_favorites_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."loan_applications" ADD CONSTRAINT "loan_applications_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."loan_applications" ADD CONSTRAINT "loan_applications_destinationAccountId_userId_fkey" FOREIGN KEY ("destinationAccountId", "userId") REFERENCES "app"."accounts"("id", "userId") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."promotions" ADD CONSTRAINT "promotions_merchantId_fkey" FOREIGN KEY ("merchantId") REFERENCES "app"."promotion_merchants"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."promotion_vouchers" ADD CONSTRAINT "promotion_vouchers_promotionId_fkey" FOREIGN KEY ("promotionId") REFERENCES "app"."promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."promotion_vouchers" ADD CONSTRAINT "promotion_vouchers_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."promotion_favorites" ADD CONSTRAINT "promotion_favorites_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."promotion_favorites" ADD CONSTRAINT "promotion_favorites_promotionId_fkey" FOREIGN KEY ("promotionId") REFERENCES "app"."promotions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."biometric_credentials" ADD CONSTRAINT "biometric_credentials_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "app"."accounts" ADD CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

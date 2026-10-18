@@ -17,6 +17,7 @@ import {
 } from "react-native-safe-area-context";
 
 import type { TabParamList } from "@/src/application/navigation/TabNavigator";
+import type { AppStackParamList } from "@/src/application/navigation/AppNavigator";
 import { useAuth } from "@/src/modules/auth/context/AuthProvider";
 import { BalanceSummaryCard } from "@/src/modules/home/components/BalanceSummaryCard";
 import { HomeAmbientBackground } from "@/src/modules/home/components/HomeAmbientBackground";
@@ -54,11 +55,17 @@ export function HomeScreen() {
 
   const handleAction = useCallback(
     (code: string) => {
+      if (code === "TRANSFER") {
+        navigation
+          .getParent<NavigationProp<TabParamList>>()
+          ?.getParent<NavigationProp<AppStackParamList>>()
+          ?.navigate("Transfers");
+      }
       if (code === "SERVICE_PAYMENT") navigateToTab("Payments");
       if (code === "CARD" || code === "ADD_PRODUCT") navigateToTab("Accounts");
       if (code === "QR_PAYMENT") navigateToTab("QrPayment");
     },
-    [navigateToTab],
+    [navigateToTab, navigation],
   );
 
   const handleContentLayout = useCallback(

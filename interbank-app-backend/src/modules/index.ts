@@ -8,6 +8,10 @@ import { MetricsModule } from '@/modules/metrics/metrics.module';
 import { FEATURE_MODULES_SERVICE_PAYMENTS } from '@/modules/service-payments';
 import { FEATURE_MODULES_SIMULATION } from '@/modules/simulation';
 import { FEATURE_MODULES_TRANSFERS } from '@/modules/transfers';
+import { FEATURE_MODULES_PROFILE } from '@/modules/profile';
+import { FEATURE_MODULES_PLIN } from '@/modules/plin';
+import { FEATURE_MODULES_LOANS } from '@/modules/loans';
+import { FEATURE_MODULES_PROMOTIONS } from '@/modules/promotions';
 
 export const FEATURE_MODULES: Type[] = [
   ...FEATURE_MODULES_SIMULATION,
@@ -18,4 +22,8 @@ export const FEATURE_MODULES: Type[] = [
   ...FEATURE_MODULES_ACCOUNTS,
   ...FEATURE_MODULES_SERVICE_PAYMENTS,
   ...FEATURE_MODULES_TRANSFERS,
+  ...FEATURE_MODULES_PROFILE,
+  ...FEATURE_MODULES_PLIN,
+  ...FEATURE_MODULES_LOANS,
+  ...FEATURE_MODULES_PROMOTIONS,
 ];

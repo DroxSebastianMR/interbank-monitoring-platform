@@ -9,6 +9,7 @@ import { JwtAccessGuard } from '@/modules/auth/guards/jwt-access.guard';
 import { PermissionsGuard } from '@/modules/auth/guards/permissions.guard';
 import { AuthRepository } from '@/modules/auth/repositories/auth.repository';
 import { AuthService } from '@/modules/auth/services/auth.service';
+import { AuthPrincipalCacheService } from '@/modules/auth/services/auth-principal-cache.service';
 import { PasswordService } from '@/modules/auth/services/password.service';
 import { TokenService } from '@/modules/auth/services/token.service';
 
@@ -30,12 +31,20 @@ import { TokenService } from '@/modules/auth/services/token.service';
   controllers: [AuthController],
   providers: [
     AuthService,
+    AuthPrincipalCacheService,
     AuthRepository,
     PasswordService,
     TokenService,
     JwtAccessGuard,
     PermissionsGuard,
   ],
-  exports: [JwtModule, AuthRepository, PasswordService, JwtAccessGuard, PermissionsGuard],
+  exports: [
+    JwtModule,
+    AuthRepository,
+    AuthPrincipalCacheService,
+    PasswordService,
+    JwtAccessGuard,
+    PermissionsGuard,
+  ],
 })
 export class AuthModule {}

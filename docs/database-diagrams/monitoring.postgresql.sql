@@ -178,6 +178,49 @@ CREATE TABLE "monitoring"."Alert" (
     CONSTRAINT "Alert_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "monitoring"."assistant_conversations" (
+    "id" UUID NOT NULL,
+    "employee_id" UUID NOT NULL,
+    "title" VARCHAR(120) NOT NULL,
+    "archived_at" TIMESTAMP(3),
+    "deleted_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "assistant_conversations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "monitoring"."assistant_messages" (
+    "id" UUID NOT NULL,
+    "conversation_id" UUID NOT NULL,
+    "role" VARCHAR(20) NOT NULL,
+    "content" TEXT NOT NULL,
+    "provider" VARCHAR(40),
+    "evidence" JSONB,
+    "feedback" VARCHAR(20),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "assistant_messages_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "monitoring"."assistant_runs" (
+    "id" UUID NOT NULL,
+    "message_id" UUID NOT NULL,
+    "provider" VARCHAR(40) NOT NULL,
+    "model" VARCHAR(120),
+    "status" VARCHAR(20) NOT NULL,
+    "latency_ms" INTEGER NOT NULL,
+    "prompt_tokens" INTEGER,
+    "completion_tokens" INTEGER,
+    "prompt_version" VARCHAR(30) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "assistant_runs_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "employees_employee_code_key" ON "monitoring"."employees"("employee_code");
 
@@ -232,6 +275,15 @@ CREATE INDEX "Incident_serviceKey_openedAt_idx" ON "monitoring"."Incident"("serv
 -- CreateIndex
 CREATE INDEX "Alert_incidentId_createdAt_idx" ON "monitoring"."Alert"("incidentId", "createdAt");
 
+-- CreateIndex
+CREATE INDEX "assistant_conversations_employee_id_deleted_at_updated_at_idx" ON "monitoring"."assistant_conversations"("employee_id", "deleted_at", "updated_at");
+
+-- CreateIndex
+CREATE INDEX "assistant_messages_conversation_id_created_at_id_idx" ON "monitoring"."assistant_messages"("conversation_id", "created_at", "id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "assistant_runs_message_id_key" ON "monitoring"."assistant_runs"("message_id");
+
 -- AddForeignKey
 ALTER TABLE "monitoring"."employee_roles" ADD CONSTRAINT "employee_roles_employee_id_fkey" FOREIGN KEY ("employee_id") REFERENCES "monitoring"."employees"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -258,4 +310,13 @@ ALTER TABLE "monitoring"."ServiceStateChange" ADD CONSTRAINT "ServiceStateChange
 
 -- AddForeignKey
 ALTER TABLE "monitoring"."Alert" ADD CONSTRAINT "Alert_incidentId_fkey" FOREIGN KEY ("incidentId") REFERENCES "monitoring"."Incident"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "monitoring"."assistant_conversations" ADD CONSTRAINT "assistant_conversations_employee_id_fkey" FOREIGN KEY ("employee_id") REFERENCES "monitoring"."employees"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "monitoring"."assistant_messages" ADD CONSTRAINT "assistant_messages_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "monitoring"."assistant_conversations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "monitoring"."assistant_runs" ADD CONSTRAINT "assistant_runs_message_id_fkey" FOREIGN KEY ("message_id") REFERENCES "monitoring"."assistant_messages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

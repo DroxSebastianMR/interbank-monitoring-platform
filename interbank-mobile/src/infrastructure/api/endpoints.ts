@@ -9,7 +9,11 @@ export const API_ENDPOINTS = {
   },
   HOME: { SUMMARY: "/home" },
   ACCOUNTS: { LIST: "/accounts" },
-  TRANSFERS: { CREATE: "/transfers" },
+  TRANSFERS: {
+    CREATE: "/transfers",
+    SOURCES: "/transfers/sources",
+    RESOLVE: "/transfers/beneficiaries/resolve",
+  },
   SERVICE_PAYMENTS: {
     ROOT: "/service-payments",
     CATEGORIES: "/service-payments/categories",

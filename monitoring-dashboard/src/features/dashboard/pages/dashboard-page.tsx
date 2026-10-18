@@ -10,6 +10,8 @@ import { RecentSignals } from '@/features/dashboard/components/recent-signals';
 import { DashboardSkeleton, PanelSkeleton } from '@/shared/components/loading/module-skeleton';
 import { ErrorState } from '@/shared/components/error-state';
 
+const TOPOLOGY_REFRESH_INTERVAL_MS = 10_000;
+
 export function DashboardPage() {
   const { employee } = useAuth();
   const { data, isLoading, isError, isFetching, refetch } = useOverview();
@@ -29,7 +31,8 @@ export function DashboardPage() {
   const topology = useQuery({
     queryKey: ["dashboard-topology"],
     queryFn: dashboardService.topology,
-    staleTime: 60_000,
+    refetchInterval: TOPOLOGY_REFRESH_INTERVAL_MS,
+    staleTime: TOPOLOGY_REFRESH_INTERVAL_MS / 2,
   });
   if (isLoading) return <DashboardSkeleton />;
   if (isError || !data)
