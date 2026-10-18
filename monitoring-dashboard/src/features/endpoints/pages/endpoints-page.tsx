@@ -164,7 +164,7 @@ export function EndpointsPage() {
           {filtered.length} operaciones por instancia · ventana de{" "}
           {snapshot.windowSeconds / 60} min
         </span>
-        <span>Consulta cada 10 s · API con caché de 5 s · P95 aproximado</span>
+        <span>Eventos cada 5 s · Resincronización HTTP cada 30 s · Percentiles aproximados</span>
       </div>
       {expired ? (
         <p role="status" className="p-6 text-center text-slate-500">

@@ -49,6 +49,7 @@ describe('JwtAccessGuard', () => {
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(repository.findPrincipalBySession).not.toHaveBeenCalled();
+    expect(principalCache.set).not.toHaveBeenCalled();
     expect(request.user).toEqual({ ...profile, sessionId: 'session-1' });
   });
 

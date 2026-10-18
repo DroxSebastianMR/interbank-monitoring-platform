@@ -32,7 +32,7 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointMetric[] }) {
               "Instancia",
               "Telemetría / tráfico",
               "Solicitudes/s",
-              "P95 (ms)",
+              "P50 / P95 / P99 (ms)",
               "Errores 5xx (%)",
               "Respuestas 4xx/s",
             ].map((heading) => (
@@ -80,7 +80,7 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointMetric[] }) {
                   {metricNumber(current ? endpoint.requestRateHz : null, 3)}
                 </td>
                 <td className="px-4 py-4 tabular-nums">
-                  {metricNumber(current ? endpoint.latencyP95Ms : null, 1)}
+                  {metricNumber(current ? endpoint.latencyP50Ms ?? null : null, 1)} / {metricNumber(current ? endpoint.latencyP95Ms : null, 1)} / {metricNumber(current ? endpoint.latencyP99Ms ?? null : null, 1)}
                 </td>
                 <td className="px-4 py-4 tabular-nums">
                   {metricNumber(errorPercent(endpoint))}

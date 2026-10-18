@@ -7,7 +7,7 @@ export function useEndpoints(employeeId: string | undefined, enabled: boolean) {
     queryFn: endpointsService.snapshot,
     enabled,
     staleTime: 5_000,
-    refetchInterval: 10_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     retry: false,
   });

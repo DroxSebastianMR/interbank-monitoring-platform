@@ -44,6 +44,7 @@ model Employee {
   sessions               AuthSession[]
   auditLogs              AuditLog[]
   assistantConversations AssistantConversation[]
+  notifications          Notification[]
 
   @@index([status])
   @@map("employees")
@@ -269,5 +270,38 @@ model AssistantRun {
   message          AssistantMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("assistant_runs")
+  @@schema("monitoring")
+}
+
+model OperationalOutbox {
+  id          String    @id @default(uuid()) @db.Uuid
+  incidentId  String    @db.Uuid
+  eventType   String    @db.VarChar(40)
+  createdAt   DateTime  @default(now())
+  queuedAt    DateTime?
+  processedAt DateTime?
+  attempts    Int       @default(0)
+  lastError   String?   @db.VarChar(120)
+  notifications Notification[]
+
+  @@index([processedAt, attempts, queuedAt, createdAt])
+  @@map("operational_outbox")
+  @@schema("monitoring")
+}
+
+model Notification {
+  id          String @id @default(uuid()) @db.Uuid
+  employeeId  String @db.Uuid
+  eventId     String @db.Uuid
+  incidentId  String @db.Uuid
+  eventType   String @db.VarChar(40)
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  event       OperationalOutbox @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, eventId])
+  @@index([employeeId, createdAt])
+  @@map("notifications")
   @@schema("monitoring")
 }

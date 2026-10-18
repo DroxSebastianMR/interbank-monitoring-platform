@@ -23,6 +23,7 @@ import { InterbankMonitorLogo } from '@/features/auth/components/interbank-monit
 import { ModuleBackButton } from '@/shared/components/module-back-button';
 import { ModuleHeaderContext } from '@/layouts/operations/module-header-context';
 import { formatShortDate, formatTime } from '@/shared/utils/format';
+import { useOperationalRealtime } from '@/features/realtime/hooks/use-operational-realtime';
 
 const monitoringLinks = [
   { to: PATHS.SERVICES, label: 'Servicios', icon: Server, count: 3, tone: 'info' },
@@ -48,6 +49,7 @@ const pageTitles: Array<[string, string]> = [
 
 export function OperationsLayout() {
   const { employee, signOut } = useAuth();
+  const realtimeStatus = useOperationalRealtime(employee?.id, employee?.permissions.join(',') ?? '');
   const navigate = useNavigate();
   const location = useLocation();
   const [monitoringOpen, setMonitoringOpen] = useState(true);
@@ -117,7 +119,7 @@ export function OperationsLayout() {
             <strong>{displayName}</strong>
           </p>
           <div className="operations-header-actions">
-            <span className="realtime-state"><i /> Datos en tiempo real <span className="realtime-environment">· Producción</span></span>
+            <span className="realtime-state" role="status">{realtimeStatus}<span className="realtime-environment"> · Monitor</span></span>
             <time>{formatTime(now)} PET</time>
             <span className="operations-date">{formatShortDate(now)}</span>
             <Button variant="ghost" size="icon" aria-label="Cerrar sesión"

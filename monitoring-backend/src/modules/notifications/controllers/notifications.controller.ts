@@ -1,4 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { CurrentEmployee } from '@/modules/auth/decorators/current-employee.decorator';
+import type { EmployeePrincipal } from '@/modules/auth/types/auth.types';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '@/modules/auth/decorators/require-permissions.decorator';
 import { PermissionCode } from '@/modules/auth/enums/permission-code.enum';
@@ -11,9 +13,14 @@ import { NotificationsService } from '@/modules/notifications/services/notificat
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly service: NotificationsService) {}
-  @RequirePermissions(PermissionCode.NOTIFICATIONS_READ)
+  @RequirePermissions(PermissionCode.NOTIFICATIONS_READ, PermissionCode.INCIDENTS_READ)
   @Get()
-  all() {
-    return this.service.findAll();
+  all(@CurrentEmployee() employee: EmployeePrincipal) {
+    return this.service.findAll(employee.id);
+  }
+  @Patch(':id/read')
+  @RequirePermissions(PermissionCode.NOTIFICATIONS_READ, PermissionCode.INCIDENTS_READ)
+  markRead(@CurrentEmployee() employee: EmployeePrincipal, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.markRead(employee.id, id);
   }
 }
