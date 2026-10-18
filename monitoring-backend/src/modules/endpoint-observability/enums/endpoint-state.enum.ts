@@ -1,0 +1,14 @@
+export enum TelemetryState {
+  AVAILABLE = 'AVAILABLE',
+  UNAVAILABLE = 'UNAVAILABLE',
+  STALE = 'STALE',
+  UNKNOWN = 'UNKNOWN',
+}
+
+export enum EndpointTrafficState {
+  OBSERVED = 'OBSERVED',
+  NO_TRAFFIC = 'NO_TRAFFIC',
+  WARMING_UP = 'WARMING_UP',
+  NOT_MEASURED = 'NOT_MEASURED',
+  UNKNOWN = 'UNKNOWN',
+}

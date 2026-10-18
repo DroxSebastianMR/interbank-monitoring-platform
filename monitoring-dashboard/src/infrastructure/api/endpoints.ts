@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     CHECK: (id: string) => `/monitoring/${encodeURIComponent(id)}/check`,
   },
   HEALTH: '/health',
+  ENDPOINTS: '/endpoint-observability',
   ASSISTANT: {
     CONVERSATIONS: '/assistant/conversations',
     CONVERSATION: (id: string) => `/assistant/conversations/${encodeURIComponent(id)}`,

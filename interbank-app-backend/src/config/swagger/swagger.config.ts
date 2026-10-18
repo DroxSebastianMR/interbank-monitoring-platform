@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import type { AppConfig } from '@/config/application/app-config.interface';
+import { registerEndpointCatalog } from '@/modules/metrics/endpoint-metrics';
 import {
   SWAGGER_AUTH_NAME,
   SWAGGER_LOCAL_SERVER_DESCRIPTION,
@@ -19,6 +20,7 @@ export function setupSwagger(app: INestApplication, appConfig: AppConfig): void 
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+  registerEndpointCatalog(document);
 
   SwaggerModule.setup(SWAGGER_PATHS.ui, app, document, {
     jsonDocumentUrl: SWAGGER_PATHS.json,

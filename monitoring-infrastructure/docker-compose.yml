@@ -147,7 +147,8 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
-    ports: ["9090:9090"]
+    # Raw telemetry is local-only; dashboard access is authorized by monitoring-backend.
+    ports: ["127.0.0.1:9090:9090"]
     networks: [monitoring-network]
 
   grafana:
