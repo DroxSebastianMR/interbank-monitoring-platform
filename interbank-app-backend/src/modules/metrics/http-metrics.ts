@@ -1,8 +1,9 @@
-import { Counter, Histogram, Registry, collectDefaultMetrics } from '@prometheus-io/client';
+import { Counter, Histogram } from '@prometheus-io/client';
 import type { Request, Response, NextFunction } from 'express';
 
-export const httpMetricsRegistry = new Registry();
-collectDefaultMetrics({ register: httpMetricsRegistry, prefix: 'interbank_app_' });
+import { httpMetricsRegistry } from '@/modules/metrics/metrics.registry';
+import { observeEndpoint } from '@/modules/metrics/endpoint-metrics';
+export { httpMetricsRegistry } from '@/modules/metrics/metrics.registry';
 
 const requests = new Counter({
   name: 'interbank_app_http_requests_total',
@@ -27,14 +28,20 @@ export function logicalService(path: string): string {
 }
 
 export function observeHttpRequest(request: Request, response: Response, next: NextFunction): void {
-  if (request.path === '/metrics' || request.path.endsWith('/health') || request.path === '/health')
-    return next();
+  if (request.path === '/metrics') return next();
+  const isHealth = request.path.endsWith('/health') || request.path === '/health';
   const service = logicalService(request.path);
   const started = process.hrtime.bigint();
   response.once('finish', () => {
     const seconds = Number(process.hrtime.bigint() - started) / 1_000_000_000;
-    requests.inc({ service, status_code: String(response.statusCode) });
-    duration.observe({ service }, seconds);
+    if (!isHealth) {
+      requests.inc({ service, status_code: String(response.statusCode) });
+      duration.observe({ service }, seconds);
+    }
+    const route: unknown = request.route;
+    const matchedPath =
+      route && typeof route === 'object' && 'path' in route ? route.path : undefined;
+    observeEndpoint(request.method ?? '', matchedPath, response.statusCode, seconds);
   });
   next();
 }

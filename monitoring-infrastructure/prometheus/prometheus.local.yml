@@ -10,11 +10,12 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['host.docker.internal:4000']
-  - job_name: app-backend-1
+  - job_name: app-backend
     metrics_path: /metrics
     static_configs:
       - targets: ['host.docker.internal:3000']
-  - job_name: app-backend-2
-    metrics_path: /metrics
-    static_configs:
+        labels:
+          instance: 'app-backend-1:3000'
       - targets: ['host.docker.internal:3002']
+        labels:
+          instance: 'app-backend-2:3000'

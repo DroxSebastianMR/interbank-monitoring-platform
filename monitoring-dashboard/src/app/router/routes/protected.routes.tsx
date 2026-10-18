@@ -14,6 +14,9 @@ export const protectedRoutes: RouteObject[] = [
       { path: PATHS.SERVICES, lazy: async () => ({
         Component: (await import('@/features/services/pages/services-page')).ServicesPage,
       }) },
+      { path: PATHS.ENDPOINTS, lazy: async () => ({
+        Component: (await import('@/features/endpoints/pages/endpoints-page')).EndpointsPage,
+      }) },
       { path: '/services/:id', lazy: async () => ({
         Component: (await import('@/features/services/pages/service-detail-page')).ServiceDetailPage,
       }) },

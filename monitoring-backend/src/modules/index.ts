@@ -15,6 +15,7 @@ import { FEATURE_MODULES_METRICS } from '@/modules/metrics';
 import { FEATURE_MODULES_ANALYTICS } from '@/modules/analytics';
 import { FEATURE_MODULES_AUDIT } from '@/modules/audit';
 import { FEATURE_MODULES_ASSISTANT } from '@/modules/assistant';
+import { FEATURE_MODULES_ENDPOINT_OBSERVABILITY } from '@/modules/endpoint-observability';
 
 export const FEATURE_MODULES: Type[] = [
   ...FEATURE_MODULES_AUTH,
@@ -32,4 +33,5 @@ export const FEATURE_MODULES: Type[] = [
   ...FEATURE_MODULES_ANALYTICS,
   ...FEATURE_MODULES_AUDIT,
   ...FEATURE_MODULES_ASSISTANT,
+  ...FEATURE_MODULES_ENDPOINT_OBSERVABILITY,
 ];

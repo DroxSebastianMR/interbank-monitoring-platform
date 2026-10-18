@@ -24,10 +24,10 @@ async function timedRequest(path, init = {}) {
     ...init,
     signal: AbortSignal.timeout(15_000),
   });
-  const durationMs = performance.now() - started;
   if (!response.ok)
     throw new Error(`${init.method ?? 'GET'} ${path} devolvió HTTP ${response.status}`);
   const body = response.status === 204 ? undefined : await response.json();
+  const durationMs = performance.now() - started;
   return { durationMs, body };
 }
 
@@ -54,6 +54,7 @@ for (const path of [
   '/dashboard/metrics',
   '/dashboard/activity?limit=12',
   '/dashboard/topology',
+  '/endpoint-observability',
 ]) {
   const durations = [];
   for (let index = 0; index < samples; index += 1) {

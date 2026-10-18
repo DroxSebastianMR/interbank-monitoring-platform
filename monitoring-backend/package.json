@@ -16,6 +16,7 @@
     "test:e2e": "jest --config test/jest-e2e.json",
     "benchmark:endpoints": "node scripts/benchmark-endpoints.mjs",
     "benchmark:dashboard": "node scripts/benchmark-dashboard.mjs",
+    "benchmark:catalog": "node scripts/benchmark-endpoint-catalog.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",

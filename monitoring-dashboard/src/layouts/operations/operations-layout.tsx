@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogOut,
   MonitorCog,
+  Route,
   Server,
   Siren,
   UserRound,
@@ -15,6 +16,7 @@ import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from '@/app/providers/auth/use-auth';
+import { PermissionCode } from '@/features/auth/enums/permission-code.enum';
 import { PATHS } from '@/app/router/constants/paths';
 import { Button } from '@/components/ui/button';
 import { InterbankMonitorLogo } from '@/features/auth/components/interbank-monitor-logo';
@@ -35,6 +37,7 @@ const intelligenceLinks = [
 ];
 
 const pageTitles: Array<[string, string]> = [
+  [PATHS.ENDPOINTS, 'Endpoints por instancia'],
   [PATHS.SERVICES, 'Servicios digitales'],
   [PATHS.INCIDENTS, 'Incidentes'],
   [PATHS.ALERTS, 'Alertas'],
@@ -77,6 +80,7 @@ export function OperationsLayout() {
               <MonitorCog aria-hidden="true" /><span>Monitoreo</span><ChevronDown className="nav-chevron" aria-hidden="true" />
             </button>
             <div className="nav-group-list" id="monitoring-links">
+              {employee?.permissions.includes(PermissionCode.ANALYTICS_READ) && <NavLink to={PATHS.ENDPOINTS}><Route aria-hidden="true" /><span>Endpoints</span></NavLink>}
               {monitoringLinks.map(({ to, label, icon: Icon, count, tone }) => (
                 <NavLink key={to} to={to}><Icon aria-hidden="true" /><span>{label}</span>{count > 0 && <span className={`nav-count tone-${tone}`} aria-label={`${count} notificaciones`}>{count}</span>}</NavLink>
               ))}
