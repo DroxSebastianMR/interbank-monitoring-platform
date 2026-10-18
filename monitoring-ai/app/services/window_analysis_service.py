@@ -41,4 +41,6 @@ class WindowAnalysisService:
             riskLevel=prediction.riskLevel,
             modelMode=prediction.modelMode,
             reasons=reasons,
+            modelVersion=prediction.modelVersion,
+            featureNames=prediction.featureNames,
         )

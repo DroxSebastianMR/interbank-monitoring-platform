@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { OperationalEventsService } from '@/modules/realtime/services/operational-events.service';
+import {
+  OperationalChannel,
+  OperationalEventType,
+} from '@/modules/realtime/enums/operational-event.enum';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { IncidentEvidence } from '@/modules/incidents/interfaces/incident-evidence.interface';
@@ -8,7 +14,16 @@ type IncidentSeverity = 'HIGH' | 'MEDIUM';
 
 @Injectable()
 export class IncidentsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly events?: OperationalEventsService,
+    @Optional() private readonly config?: ConfigService,
+  ) {}
+
+  private outbox(incidentId: string, eventType: string) {
+    if (this.config?.get<string>('MONITORING_DELIVERY_ENABLED') !== 'true') return [];
+    return [this.prisma.operationalOutbox.create({ data: { incidentId, eventType } })];
+  }
 
   findAll() {
     return this.prisma.incident.findMany({ orderBy: { openedAt: 'desc' }, take: 100 });
@@ -31,7 +46,11 @@ export class IncidentsRepository {
       this.prisma.alert.create({
         data: { incidentId, kind: 'RECOVERY', message: `${serviceKey} recovered` },
       }),
+      ...this.outbox(incidentId, 'incident.resolved'),
     ]);
+    this.events?.publish(OperationalChannel.INCIDENTS, OperationalEventType.INCIDENT_UPDATED, {
+      incidentId,
+    });
   }
 
   async open(
@@ -57,7 +76,11 @@ export class IncidentsRepository {
       this.prisma.alert.create({
         data: { incidentId, kind: 'OPENED', message: title },
       }),
+      ...this.outbox(incidentId, 'incident.created'),
     ]);
+    this.events?.publish(OperationalChannel.INCIDENTS, OperationalEventType.INCIDENT_CREATED, {
+      incidentId,
+    });
   }
 
   async changeSeverity(
@@ -76,7 +99,10 @@ export class IncidentsRepository {
     });
 
     if (severity !== 'HIGH') {
-      await updateIncident;
+      await this.prisma.$transaction([updateIncident, ...this.outbox(incidentId, 'incident.updated')]);
+      this.events?.publish(OperationalChannel.INCIDENTS, OperationalEventType.INCIDENT_UPDATED, {
+        incidentId,
+      });
       return;
     }
 
@@ -85,6 +111,10 @@ export class IncidentsRepository {
       this.prisma.alert.create({
         data: { incidentId, kind: 'ESCALATED', message: `${serviceKey} unavailable` },
       }),
+      ...this.outbox(incidentId, 'incident.escalated'),
     ]);
+    this.events?.publish(OperationalChannel.INCIDENTS, OperationalEventType.INCIDENT_UPDATED, {
+      incidentId,
+    });
   }
 }

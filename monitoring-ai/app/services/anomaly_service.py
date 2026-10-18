@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 
 from app.core.config import Settings
+from app.core.features import FEATURES
 from app.schemas.prediction_request import PredictionRequest
 from app.schemas.prediction_response import PredictionResponse
 
@@ -39,5 +40,7 @@ class AnomalyService:
             mode = "baseline"
         risk = "HIGH" if score >= 0.7 else "MEDIUM" if score >= 0.35 else "LOW"
         return PredictionResponse(
-            anomaly=score >= 0.7, anomalyScore=round(score, 4), riskLevel=risk, modelMode=mode
+            anomaly=score >= 0.7, anomalyScore=round(score, 4), riskLevel=risk, modelMode=mode,
+            modelVersion=self.model.get("metadata", {}).get("modelVersion", "legacy-unversioned") if self.model else "baseline-v1",
+            featureNames=FEATURES,
         )

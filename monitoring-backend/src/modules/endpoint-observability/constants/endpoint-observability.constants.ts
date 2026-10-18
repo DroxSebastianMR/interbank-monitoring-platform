@@ -1,7 +1,7 @@
 export const ENDPOINT_CACHE_MS = 5_000;
 export const ENDPOINT_STALE_MS = 35_000;
 export const ENDPOINT_FALLBACK_MS = 60_000;
-export const ENDPOINT_REFRESH_MS = 10_000;
+export const ENDPOINT_REFRESH_MS = 5_000;
 export const ENDPOINT_QUERY_TIMEOUT_MS = 1_500;
 export const ENDPOINT_MAX_SAMPLES = 10_000;
 
@@ -17,4 +17,6 @@ export const ENDPOINT_QUERIES = {
   clientErrors: `sum by (${labels}) (rate(${counter}{job="app-backend",status_class="4xx"}[2m]))`,
   serverErrors: `sum by (${labels}) (rate(${counter}{job="app-backend",status_class="5xx"}[2m]))`,
   p95: `histogram_quantile(0.95, sum by (${labels},le) (rate(interbank_app_endpoint_request_duration_seconds_bucket${selector}[2m])))`,
+  p50: `histogram_quantile(0.50, sum by (${labels},le) (rate(interbank_app_endpoint_request_duration_seconds_bucket${selector}[2m])))`,
+  p99: `histogram_quantile(0.99, sum by (${labels},le) (rate(interbank_app_endpoint_request_duration_seconds_bucket${selector}[2m])))`,
 } as const;

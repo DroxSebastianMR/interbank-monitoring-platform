@@ -1,4 +1,5 @@
 import { Controller, Get, Header, UseGuards } from '@nestjs/common';
+import { EndpointStreamService } from '@/modules/endpoint-observability/services/endpoint-stream.service';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -12,7 +13,10 @@ import { RequirePermissions } from '@/modules/auth/decorators/require-permission
 import { PermissionCode } from '@/modules/auth/enums/permission-code.enum';
 import { JwtAccessGuard } from '@/modules/auth/guards/jwt-access.guard';
 import { PermissionsGuard } from '@/modules/auth/guards/permissions.guard';
-import { EndpointSnapshotDto } from '@/modules/endpoint-observability/dto/endpoint-snapshot.dto';
+import {
+  EndpointSnapshotDto,
+  LiveEndpointSnapshotDto,
+} from '@/modules/endpoint-observability/dto/endpoint-snapshot.dto';
 import { EndpointObservabilityService } from '@/modules/endpoint-observability/services/endpoint-observability.service';
 
 @ApiTags('Endpoint observability')
@@ -21,7 +25,20 @@ import { EndpointObservabilityService } from '@/modules/endpoint-observability/s
 @RequirePermissions(PermissionCode.ANALYTICS_READ)
 @Controller('endpoint-observability')
 export class EndpointObservabilityController {
-  constructor(private readonly service: EndpointObservabilityService) {}
+  constructor(
+    private readonly service: EndpointObservabilityService,
+    private readonly stream: EndpointStreamService,
+  ) {}
+
+  @Get('snapshot')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary: 'Snapshot inicial con cursor para sincronización WebSocket; analytics.read',
+  })
+  @ApiOkResponse({ type: LiveEndpointSnapshotDto })
+  liveSnapshot() {
+    return this.stream.snapshot();
+  }
 
   @Get()
   @Header('Cache-Control', 'no-store')

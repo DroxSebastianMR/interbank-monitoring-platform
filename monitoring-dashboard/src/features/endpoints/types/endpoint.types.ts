@@ -11,6 +11,12 @@ export interface EndpointInstance {
 }
 
 export interface EndpointMetric {
+  operationId?: string;
+  application?: string;
+  version?: string;
+  controlPolicy?: string;
+  latencyP50Ms?: number | null;
+  latencyP99Ms?: number | null;
   instance: string;
   module: string;
   method: string;
@@ -26,6 +32,7 @@ export interface EndpointMetric {
 }
 
 export interface EndpointSnapshot {
+  cursor?: { streamId: string; sequence: number };
   sourceState: TelemetryState;
   generatedAt: string;
   lastSuccessAt: string | null;

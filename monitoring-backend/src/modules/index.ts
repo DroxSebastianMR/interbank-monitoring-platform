@@ -1,4 +1,5 @@
 import type { Type } from '@nestjs/common';
+import { RealtimeModule } from '@/modules/realtime/realtime.module';
 
 import { FEATURE_MODULES_AUTH } from '@/modules/auth';
 import { FEATURE_MODULES_ACCESS_CONTROL } from '@/modules/access-control';
@@ -18,6 +19,7 @@ import { FEATURE_MODULES_ASSISTANT } from '@/modules/assistant';
 import { FEATURE_MODULES_ENDPOINT_OBSERVABILITY } from '@/modules/endpoint-observability';
 
 export const FEATURE_MODULES: Type[] = [
+  RealtimeModule,
   ...FEATURE_MODULES_AUTH,
   ...FEATURE_MODULES_ACCESS_CONTROL,
   ...FEATURE_MODULES_AI_INTEGRATION,
