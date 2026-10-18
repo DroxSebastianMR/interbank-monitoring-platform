@@ -149,44 +149,56 @@ export class MonitoredServicesRepository {
     timedOut: boolean,
     origin: 'SCHEDULED' | 'MANUAL',
   ): Promise<void> {
+    const service = await this.prisma.monitoredService.findUniqueOrThrow({
+      where: { code },
+      select: { id: true },
+    });
+    const updateService = this.prisma.monitoredService.update({
+      where: { code },
+      data: {
+        status: snapshot.status,
+        lastCheckedAt: snapshot.lastCheckedAt ? new Date(snapshot.lastCheckedAt) : null,
+        lastLatencyMs: snapshot.latencyMs,
+        lastMessage: snapshot.message,
+        anomalyScore: snapshot.anomalyScore,
+        riskLevel: snapshot.riskLevel,
+        consecutiveFailures: snapshot.consecutiveFailures,
+        consecutiveSuccesses: snapshot.consecutiveSuccesses ?? 0,
+      },
+    });
+    const createHealthCheck = this.prisma.healthCheck.create({
+      data: {
+        serviceId: service.id,
+        status: snapshot.status,
+        latencyMs: snapshot.latencyMs ?? 0,
+        reachable,
+        timedOut,
+        message: snapshot.message,
+        origin,
+        checkedAt: snapshot.lastCheckedAt ? new Date(snapshot.lastCheckedAt) : new Date(),
+      },
+    });
+
+    if (previousStatus === snapshot.status) {
+      await this.prisma.$transaction([updateService, createHealthCheck], {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      });
+      return;
+    }
+
     await this.prisma.$transaction(
-      async (tx) => {
-        const service = await tx.monitoredService.update({
-          where: { code },
-          data: {
-            status: snapshot.status,
-            lastCheckedAt: snapshot.lastCheckedAt ? new Date(snapshot.lastCheckedAt) : null,
-            lastLatencyMs: snapshot.latencyMs,
-            lastMessage: snapshot.message,
-            anomalyScore: snapshot.anomalyScore,
-            riskLevel: snapshot.riskLevel,
-            consecutiveFailures: snapshot.consecutiveFailures,
-            consecutiveSuccesses: snapshot.consecutiveSuccesses ?? 0,
-          },
-        });
-        await tx.healthCheck.create({
+      [
+        updateService,
+        createHealthCheck,
+        this.prisma.serviceStateChange.create({
           data: {
             serviceId: service.id,
-            status: snapshot.status,
-            latencyMs: snapshot.latencyMs ?? 0,
-            reachable,
-            timedOut,
-            message: snapshot.message,
-            origin,
-            checkedAt: snapshot.lastCheckedAt ? new Date(snapshot.lastCheckedAt) : new Date(),
+            fromStatus: previousStatus,
+            toStatus: snapshot.status,
+            reason: snapshot.message,
           },
-        });
-        if (previousStatus !== snapshot.status) {
-          await tx.serviceStateChange.create({
-            data: {
-              serviceId: service.id,
-              fromStatus: previousStatus,
-              toStatus: snapshot.status,
-              reason: snapshot.message,
-            },
-          });
-        }
-      },
+        }),
+      ],
       { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
   }

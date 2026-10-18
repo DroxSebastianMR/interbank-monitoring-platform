@@ -8,4 +8,7 @@ export const PATHS = {
   ANALYTICS: '/analytics',
   HEALTH: '/health',
   ASSISTANT: '/assistant',
+  FORBIDDEN: '/403',
+  NOT_FOUND: '/404',
+  SERVER_ERROR: '/500',
 } as const;

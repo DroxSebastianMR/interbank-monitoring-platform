@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { IncidentEvidence } from '@/modules/incidents/interfaces/incident-evidence.interface';
 import type { ServiceStatus } from '@/modules/service-state/interfaces/service-state';
@@ -18,19 +19,19 @@ export class IncidentsRepository {
   }
 
   async resolve(incidentId: string, serviceKey: string, observedAt: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.incident.update({
+    await this.prisma.$transaction([
+      this.prisma.incident.update({
         where: { id: incidentId },
         data: {
           status: 'RESOLVED',
           resolvedAt: new Date(),
           lastObservedAt: new Date(observedAt),
         },
-      });
-      await tx.alert.create({
+      }),
+      this.prisma.alert.create({
         data: { incidentId, kind: 'RECOVERY', message: `${serviceKey} recovered` },
-      });
-    });
+      }),
+    ]);
   }
 
   async open(
@@ -39,21 +40,24 @@ export class IncidentsRepository {
     severity: IncidentSeverity,
     evidence: IncidentEvidence,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      const incident = await tx.incident.create({
+    const incidentId = randomUUID();
+    const title = `${serviceKey} ${status.toLowerCase()}`;
+    await this.prisma.$transaction([
+      this.prisma.incident.create({
         data: {
+          id: incidentId,
           serviceKey,
-          title: `${serviceKey} ${status.toLowerCase()}`,
+          title,
           status: 'OPEN',
           severity,
           evidence: { ...evidence },
           lastObservedAt: new Date(evidence.observedAt),
         },
-      });
-      await tx.alert.create({
-        data: { incidentId: incident.id, kind: 'OPENED', message: incident.title },
-      });
-    });
+      }),
+      this.prisma.alert.create({
+        data: { incidentId, kind: 'OPENED', message: title },
+      }),
+    ]);
   }
 
   async changeSeverity(
@@ -62,20 +66,25 @@ export class IncidentsRepository {
     severity: IncidentSeverity,
     evidence: IncidentEvidence,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.incident.update({
-        where: { id: incidentId },
-        data: {
-          severity,
-          evidence: { ...evidence },
-          lastObservedAt: new Date(evidence.observedAt),
-        },
-      });
-      if (severity === 'HIGH') {
-        await tx.alert.create({
-          data: { incidentId, kind: 'ESCALATED', message: `${serviceKey} unavailable` },
-        });
-      }
+    const updateIncident = this.prisma.incident.update({
+      where: { id: incidentId },
+      data: {
+        severity,
+        evidence: { ...evidence },
+        lastObservedAt: new Date(evidence.observedAt),
+      },
     });
+
+    if (severity !== 'HIGH') {
+      await updateIncident;
+      return;
+    }
+
+    await this.prisma.$transaction([
+      updateIncident,
+      this.prisma.alert.create({
+        data: { incidentId, kind: 'ESCALATED', message: `${serviceKey} unavailable` },
+      }),
+    ]);
   }
 }

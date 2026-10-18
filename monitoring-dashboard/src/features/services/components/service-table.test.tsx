@@ -23,7 +23,7 @@ describe("ServiceTable", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText("Login")).toBeInTheDocument();
-    expect(screen.getByText("OPERATIONAL")).toBeInTheDocument();
+    expect(screen.getByText("Operativo")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Login" })).toHaveAttribute(
       "href",
       "/services/login",

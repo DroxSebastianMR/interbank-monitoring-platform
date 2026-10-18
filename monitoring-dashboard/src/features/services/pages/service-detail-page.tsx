@@ -1,9 +1,20 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { BrainCircuit, Gauge, RadioTower, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/app/providers/auth/use-auth';
-import { PATHS } from '@/app/router/constants/paths';
 import { servicesService } from '@/features/services/services/services.service';
 import { ServiceActions } from '@/features/services/forms/service-actions';
+import { ServiceStatusBadge } from '@/features/services/components/service-status-badge';
+import { ServiceKpiCard, ServiceKpiGrid } from '@/features/services/components/service-kpi-card';
+import { ServiceCheckHistory } from '@/features/services/components/service-check-history';
+import { ServiceConfigHistory } from '@/features/services/components/service-config-history';
+import { ServiceInstanceGrid } from '@/features/services/components/service-instance-grid';
+import { ServiceStateTimeline } from '@/features/services/components/service-state-timeline';
+import { getCriticalityLabel, getRiskLevelLabel } from '@/features/services/constants/service.constants';
+import { useModuleHeader } from '@/layouts/operations/module-header-context';
+import { DetailSkeleton, PanelSkeleton } from '@/shared/components/loading/module-skeleton';
+import { ErrorState } from '@/shared/components/error-state';
 
 export function ServiceDetailPage() {
   const { id = "" } = useParams();
@@ -37,144 +48,89 @@ export function ServiceDetailPage() {
     enabled: !!id,
     refetchInterval: 10_000,
   });
-  if (service.isLoading)
-    return <div className="notice">Cargando servicio…</div>;
-  if (service.isError || !service.data)
-    return (
-      <div role="alert" className="notice error">
-        No se pudo consultar este servicio.
-      </div>
+  const { setModuleChild, setModuleActions } = useModuleHeader();
+  const childName = service.data?.name ?? null;
+  const childStatus = service.data?.status ?? null;
+  useEffect(() => {
+    setModuleChild(childName);
+    return () => setModuleChild(null);
+  }, [childName, setModuleChild]);
+  useEffect(() => {
+    setModuleActions(
+      childStatus ? <ServiceStatusBadge status={childStatus} showIcon={false} /> : null,
     );
+    return () => setModuleActions(null);
+  }, [childStatus, setModuleActions]);
+  if (service.isLoading) return <DetailSkeleton />;
+  if (service.isError || !service.data)
+    return <ErrorState>No se pudo consultar este servicio.</ErrorState>;
   const current = service.data;
   return (
     <section>
-      <Link to={PATHS.SERVICES}>← Volver a servicios</Link>
-      <div className="section-title">
-        <h2>{current.name}</h2>
-        <span className={`status ${current.status.toLowerCase()}`}>
-          {current.status}
-        </span>
-      </div>
-      <div className="metrics">
-        <article>
-          <span>Criticidad</span>
-          <strong>{current.criticality ?? "Sin datos"}</strong>
-        </article>
-        <article>
-          <span>Riesgo de anomalía IA</span>
-          <strong>{current.riskLevel ?? "Sin datos"}</strong>
-        </article>
-        <article>
-          <span>Latencia última sonda</span>
-          <strong>
-            {current.latencyMs == null
-              ? "Sin datos"
-              : `${current.latencyMs} ms`}
-          </strong>
-        </article>
-        <article>
-          <span>Supervisión</span>
-          <strong>
-            {current.monitoringEnabled === false ? "Pausada" : "Activa"}
-          </strong>
-        </article>
-      </div>
+      <ServiceKpiGrid>
+        <ServiceKpiCard
+          label="Latencia última sonda"
+          value={current.latencyMs == null ? "Sin datos" : `${current.latencyMs} ms`}
+          description={current.latencyMs == null ? 'Esperando una observación' : 'Tiempo de respuesta más reciente'}
+          icon={Gauge}
+          tone={current.latencyMs == null ? 'neutral' : current.latencyMs > 1000 ? 'critical' : 'success'}
+        />
+        <ServiceKpiCard
+          label="Supervisión"
+          value={current.monitoringEnabled === false ? "Pausada" : "Activa"}
+          description={current.monitoringEnabled === false ? 'Las sondas están detenidas' : 'Comprobación automática habilitada'}
+          icon={RadioTower}
+          tone={current.monitoringEnabled === false ? 'warning' : 'success'}
+        />
+        <ServiceKpiCard
+          label="Criticidad"
+          value={getCriticalityLabel(current.criticality)}
+          description="Prioridad operativa del servicio"
+          icon={ShieldCheck}
+          tone={current.criticality === 'CRITICAL' || current.criticality === 'HIGH' ? 'critical' : 'info'}
+        />
+        <ServiceKpiCard
+          label="Riesgo de anomalía IA"
+          value={getRiskLevelLabel(current.riskLevel)}
+          description="Evaluación del último análisis"
+          icon={BrainCircuit}
+          tone={current.riskLevel === 'HIGH' ? 'critical' : current.riskLevel === 'MEDIUM' ? 'warning' : current.riskLevel === 'LOW' ? 'success' : 'neutral'}
+        />
+      </ServiceKpiGrid>
       {employee?.permissions.includes("services.manage") && (
         <ServiceActions
           key={`${current.id}-${current.version}`}
           service={current}
         />
       )}
-      <div className="section-title">
-        <h2>Historial de comprobaciones</h2>
-      </div>
       {checks.isLoading ? (
-        <div className="notice">Cargando observaciones…</div>
+        <PanelSkeleton rows={5} label="Cargando observaciones" />
       ) : checks.isError ? (
-        <div role="alert" className="notice error">
-          No se pudo cargar el historial.
-        </div>
-      ) : checks.data?.length ? (
-        <div className="table-card table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Estado</th>
-                <th>Latencia</th>
-                <th>Resultado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {checks.data.map((check) => (
-                <tr key={check.id}>
-                  <td>{new Date(check.checkedAt).toLocaleString("es-PE")}</td>
-                  <td>{check.status}</td>
-                  <td>{check.latencyMs} ms</td>
-                  <td>{check.message ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ErrorState>No se pudo cargar el historial.</ErrorState>
       ) : (
-        <div className="notice">Aún no hay comprobaciones registradas.</div>
+        <ServiceCheckHistory
+          checks={checks.data ?? []}
+          serviceName={current.name}
+          updatedAt={checks.dataUpdatedAt}
+        />
       )}
       <div className="dashboard-columns">
-        <section className="table-card">
-          <h2>Cambios de estado</h2>
-          {stateHistory.isError ? (
-            <p role="alert">No se pudo consultar el historial.</p>
-          ) : stateHistory.data?.length ? (
-            <ul>
-              {stateHistory.data.map((change) => (
-                <li key={change.id}>
-                  {change.fromStatus} → {change.toStatus} ·{" "}
-                  {new Date(change.changedAt).toLocaleString("es-PE")}
-                  {change.reason ? ` · ${change.reason}` : ""}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Sin transiciones registradas.</p>
-          )}
-        </section>
-        <section className="table-card">
-          <h2>Instancias del laboratorio</h2>
-          {instances.isError ? (
-            <p role="alert">No se pudo consultar la topología.</p>
-          ) : (
-            <>
-              {!instances.data?.instrumented && (
-                <p>Estado individual no instrumentado; no se infiere salud de NGINX.</p>
-              )}
-              <ul>
-                {instances.data?.instances.map((instance) => (
-                  <li key={instance.id}>
-                    {instance.id} · {instance.status}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
+        <ServiceStateTimeline
+          changes={stateHistory.data ?? []}
+          isLoading={stateHistory.isLoading}
+          isError={stateHistory.isError}
+        />
+        <ServiceInstanceGrid
+          data={instances.data}
+          isLoading={instances.isLoading}
+          isError={instances.isError}
+        />
       </div>
-      <section className="table-card">
-        <h2>Historial de configuración</h2>
-        {configHistory.isError ? (
-          <p role="alert">No se pudo consultar la auditoría.</p>
-        ) : configHistory.data?.length ? (
-          <ul>
-            {configHistory.data.map((change) => (
-              <li key={change.id}>
-                {change.action} · {new Date(change.createdAt).toLocaleString("es-PE")}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>Sin cambios administrativos registrados.</p>
-        )}
-      </section>
+      <ServiceConfigHistory
+        changes={configHistory.data ?? []}
+        isLoading={configHistory.isLoading}
+        isError={configHistory.isError}
+      />
     </section>
   );
 }

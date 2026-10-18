@@ -54,19 +54,24 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return this.services.findAll();
     this.running = true;
     try {
-      const checked = await Promise.allSettled(
-        this.services
-          .findAll()
-          .filter((service) => service.monitoringEnabled !== false)
-          .map((service) => this.check(service.id, 'SCHEDULED')),
-      );
-      return checked.flatMap((result) => {
-        if (result.status === 'rejected') {
-          this.logger.error(`Monitoring check failed: ${String(result.reason)}`);
-          return [];
+      const snapshots: ServiceSnapshot[] = [];
+      const enabledServices = this.services
+        .findAll()
+        .filter((service) => service.monitoringEnabled !== false);
+
+      // Keep scheduled checks sequential. Each check persists several records and the
+      // development database has a deliberately small connection pool; starting every
+      // service at once can starve authentication and other user-facing requests.
+      for (const service of enabledServices) {
+        try {
+          const snapshot = await this.check(service.id, 'SCHEDULED');
+          if (snapshot) snapshots.push(snapshot);
+        } catch (error) {
+          this.logger.error(`Monitoring check failed: ${String(error)}`);
         }
-        return result.value ? [result.value] : [];
-      });
+      }
+
+      return snapshots;
     } finally {
       this.running = false;
     }

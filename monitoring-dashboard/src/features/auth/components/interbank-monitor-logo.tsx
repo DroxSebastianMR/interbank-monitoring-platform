@@ -1,8 +1,9 @@
 type InterbankMonitorLogoProps = {
   variant?: 'light' | 'dark';
+  compact?: boolean;
 };
 
-export function InterbankMonitorLogo({ variant = 'light' }: InterbankMonitorLogoProps) {
+export function InterbankMonitorLogo({ variant = 'light', compact = false }: InterbankMonitorLogoProps) {
   const isLight = variant === 'light';
 
   return (
@@ -14,9 +15,11 @@ export function InterbankMonitorLogo({ variant = 'light' }: InterbankMonitorLogo
           fill="#003DA5"
         />
       </svg>
-      <span className={`text-xl font-bold tracking-[-0.04em] sm:text-2xl ${isLight ? 'text-white' : 'text-[#07532b]'}`}>
-        Interbank <span className={`font-normal ${isLight ? 'text-white/80' : 'text-[#65796b]'}`}>Monitor</span>
-      </span>
+      {!compact && (
+        <span className={`font-heading text-xl font-bold tracking-[-0.04em] sm:text-2xl ${isLight ? 'text-white' : 'text-[#07532b]'}`}>
+          Interbank <span className={`font-normal ${isLight ? 'text-white/80' : 'text-[#65796b]'}`}>Monitor</span>
+        </span>
+      )}
     </div>
   );
 }

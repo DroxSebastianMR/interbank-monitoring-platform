@@ -5,10 +5,11 @@ import { PATHS } from '@/app/router/constants/paths';
 import { InterbankMonitorLogo } from '@/features/auth/components/interbank-monitor-logo';
 import { LoginBrandPanel } from '@/features/auth/components/login-brand-panel';
 import { LoginForm } from '@/features/auth/forms/login-form';
+import { FullPageLoader } from '@/shared/components/loading/full-page-loader';
 
 export function LoginPage() {
   const { employee, isLoading } = useAuth();
-  if (isLoading) return <div className="notice">Validando sesión…</div>;
+  if (isLoading) return <FullPageLoader />;
   if (employee) return <Navigate to={PATHS.DASHBOARD} replace />;
 
   return (

@@ -31,8 +31,8 @@ export interface ServiceCheck {
 
 export interface ServiceStateChange {
   id: string;
-  fromStatus: string;
-  toStatus: string;
+  fromStatus: ServiceStatus;
+  toStatus: ServiceStatus;
   reason: string | null;
   changedAt: string;
 }
@@ -42,9 +42,10 @@ export interface ServiceConfigChange {
   action: string;
   actorId: string | null;
   createdAt: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface ServiceInstances {
   instrumented: boolean;
-  instances: Array<{ id: string; status: string; lastObservedAt: string | null }>;
+  instances: Array<{ id: string; status: ServiceStatus; lastObservedAt: string | null }>;
 }

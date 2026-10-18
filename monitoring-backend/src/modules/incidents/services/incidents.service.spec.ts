@@ -34,8 +34,11 @@ describe('IncidentsService', () => {
     };
     const prisma = {
       ...transactionClient,
-      $transaction: jest.fn(async (callback: (tx: unknown) => Promise<void>): Promise<void> =>
-        callback(transactionClient),
+      $transaction: jest.fn(
+        async (operation: ((tx: unknown) => Promise<void>) | Promise<unknown>[]) => {
+          if (Array.isArray(operation)) return Promise.all(operation);
+          return operation(transactionClient);
+        },
       ),
     };
     const service = new IncidentsService(

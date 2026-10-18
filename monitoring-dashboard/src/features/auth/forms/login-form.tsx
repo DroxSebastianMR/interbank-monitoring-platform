@@ -11,8 +11,7 @@ export function LoginForm() {
   return (
     <div className="mx-auto my-auto w-full max-w-[414px] py-8">
       <div className="mb-9">
-        <span className="text-[11px] font-extrabold tracking-[0.16em] text-[#008e3d]">BIENVENIDO DE NUEVO</span>
-        <h1 className="mt-3 mb-2.5 text-[clamp(34px,3vw,43px)] leading-[1.1] font-bold tracking-[-0.045em] text-[#0a2b19]">Inicia sesión</h1>
+        <h1 className="mb-2.5 text-[clamp(34px,3vw,43px)] leading-[1.1] font-bold tracking-[-0.04em] text-[#0a2b19]">Inicia sesión</h1>
         <p className="max-w-[365px] text-sm leading-relaxed text-[#65776c]">Ingresa con tus credenciales corporativas para acceder al centro de monitoreo.</p>
       </div>
       <form className="grid gap-6" onSubmit={(event) => void form.handleSubmit(event)} noValidate>

@@ -8,6 +8,7 @@ import { AssistantEmptyState } from '@/features/assistant/components/assistant-e
 import { AssistantMessage } from '@/features/assistant/components/assistant-message';
 import { AssistantTypingIndicator } from '@/features/assistant/components/assistant-typing-indicator';
 import { assistantService } from '@/features/assistant/services/assistant.service';
+import { PanelSkeleton } from '@/shared/components/loading/module-skeleton';
 
 export function AssistantPage() {
   const { employee } = useAuth();
@@ -115,7 +116,7 @@ export function AssistantPage() {
             <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900">Conversaciones</h3>
             <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-emerald-700">{conversations.data?.length ?? 0}</span>
           </div>
-          {conversations.isLoading && <p className="px-2 text-sm text-slate-500">Cargando historial…</p>}
+          {conversations.isLoading && <PanelSkeleton rows={5} label="Cargando historial de conversaciones" />}
           {conversations.isError && <p className="px-2 text-sm text-red-700">No se pudo cargar el historial.</p>}
           {conversations.data?.length === 0 && (
             <p className="rounded-xl border border-dashed border-emerald-200 bg-white/70 px-3 py-4 text-sm leading-5 text-slate-500">
@@ -141,7 +142,7 @@ export function AssistantPage() {
         <div className="flex min-h-[600px] min-w-0 flex-col bg-gradient-to-b from-white via-white to-emerald-50/40">
           <div ref={messagesContainerRef} role="log" aria-label="Mensajes de la conversación" aria-live="polite" className="flex max-h-[580px] min-h-[400px] flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6">
             {!selectedId && <AssistantEmptyState canAsk={canAsk} onSuggestion={useSuggestion} />}
-            {selectedId && messages.isLoading && <p className="m-auto text-sm text-slate-500">Cargando mensajes…</p>}
+            {selectedId && messages.isLoading && <PanelSkeleton rows={4} label="Cargando mensajes" />}
             {selectedId && messages.isError && <p role="alert" className="m-auto text-sm text-red-700">No se pudieron cargar los mensajes.</p>}
             {selectedId && !messages.isLoading && messages.data?.length === 0 && !sending && (
               <AssistantEmptyState canAsk={canAsk} onSuggestion={useSuggestion} />

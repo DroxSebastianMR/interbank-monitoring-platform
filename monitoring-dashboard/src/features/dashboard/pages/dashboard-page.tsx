@@ -1,12 +1,14 @@
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from '@/app/providers/auth/use-auth';
 import { useOverview } from '@/features/dashboard/hooks/use-overview';
 import { dashboardService } from '@/features/dashboard/services/dashboard.service';
 import { OverviewIndicators } from '@/features/dashboard/components/overview-indicators';
+import { OperationsSummaryBanner } from '@/features/dashboard/components/operations-summary-banner';
 import { InfrastructureTopology } from '@/features/dashboard/components/infrastructure-topology';
-import { ServiceTable } from '@/features/services/components/service-table';
-import { PATHS } from '@/app/router/constants/paths';
+import { NetworkSchedule } from '@/features/dashboard/components/network-schedule';
+import { RecentSignals } from '@/features/dashboard/components/recent-signals';
+import { DashboardSkeleton, PanelSkeleton } from '@/shared/components/loading/module-skeleton';
+import { ErrorState } from '@/shared/components/error-state';
 
 export function DashboardPage() {
   const { employee } = useAuth();
@@ -29,125 +31,25 @@ export function DashboardPage() {
     queryFn: dashboardService.topology,
     staleTime: 60_000,
   });
-  if (isLoading)
-    return <div className="notice">Consultando el estado del monitor…</div>;
+  if (isLoading) return <DashboardSkeleton />;
   if (isError || !data)
     return (
-      <div role="alert" className="notice error">
+      <ErrorState onRetry={() => void refetch()}>
         No se pudo consultar el Monitoring Backend. La conectividad del panel no
-        indica por sí misma una caída bancaria.{" "}
-        <button onClick={() => void refetch()}>Reintentar</button>
-      </div>
+        indica por sí misma una caída bancaria.
+      </ErrorState>
     );
   return (
-    <section>
-      <div className="section-title">
-        <div>
-          <p className="eyebrow">CENTRO DE MONITOREO</p>
-          <h2>Resumen global</h2>
-        </div>
-        <div>
-          <span>
-            {data.environment} ·{" "}
-            {data.lastObservationAt
-              ? `Última observación ${new Date(data.lastObservationAt).toLocaleString("es-PE")}`
-              : "Sin observaciones"}
-          </span>{" "}
-          <button onClick={() => void refetch()} disabled={isFetching}>
-            Actualizar
-          </button>
-        </div>
-      </div>
-      {data.dataFreshness !== "CURRENT" && (
-        <div className="notice" role="status">
-          Los datos del monitor están{" "}
-          {data.dataFreshness === "STALE" ? "vencidos" : "pendientes"}. No se
-          asume disponibilidad ni caída sin evidencia reciente.
-        </div>
-      )}
-      <OverviewIndicators overview={data} />
-      <div className="section-title">
-        <h2>Servicios digitales</h2>
-        <Link to={PATHS.SERVICES}>Ver todos</Link>
-      </div>
-      <ServiceTable
-        services={data.services.map((service) => ({
-          ...service,
-          message: service.monitoringEnabled ? "" : "Supervisión pausada",
-        }))}
+    <section className="dashboard-page">
+      <OperationsSummaryBanner
+        overview={data}
+        isFetching={isFetching}
+        onRefresh={() => void refetch()}
       />
-      <div className="dashboard-columns">
-        <section className="table-card chart-card">
-          <h2>Latencia de comprobaciones</h2>
-          {!canReadMetrics ? (
-            <p>No tienes permiso para consultar métricas.</p>
-          ) : metrics.isError ? (
-            <p>No se pudo cargar la serie temporal.</p>
-          ) : metrics.data?.points.length ? (
-            <div
-              className="chart-bars"
-              role="img"
-              aria-label="Latencia reciente de las comprobaciones en milisegundos"
-            >
-              {metrics.data.points.slice(-24).map((point, index) => (
-                <span
-                  key={`${point.timestamp}-${point.serviceId}-${index}`}
-                  title={`${point.serviceId}: ${point.value} ms · ${new Date(point.timestamp).toLocaleTimeString("es-PE")}`}
-                  style={{
-                    height: `${Math.max(6, Math.min(100, (point.value / Math.max(1, ...metrics.data!.points.slice(-24).map((item) => item.value))) * 100))}%`,
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <p>No hay observaciones para este periodo.</p>
-          )}
-        </section>
-        <section className="table-card">
-          <h2>Actividad reciente</h2>
-          {activity.isError ? (
-            <p>No se pudo cargar la actividad.</p>
-          ) : activity.data?.length ? (
-            <ul>
-              {activity.data.slice(0, 5).map((item) => (
-                <li key={`${item.type}-${item.id}`}>
-                  {item.description} ·{" "}
-                  {new Date(item.timestamp).toLocaleString("es-PE")}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Sin actividad registrada.</p>
-          )}
-        </section>
-      </div>
-      <div className="dashboard-columns">
-        <section className="table-card">
-          <h2>Incidentes recientes</h2>
-          {data.recentIncidents.length ? (
-            <ul>
-              {data.recentIncidents.map((incident) => (
-                <li key={incident.id}>
-                  {incident.title} · {incident.severity}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Sin incidentes activos.</p>
-          )}
-        </section>
-        <section className="table-card">
-          <h2>Alertas recientes</h2>
-          {data.recentAlerts.length ? (
-            <ul>
-              {data.recentAlerts.map((alert) => (
-                <li key={alert.id}>{alert.message}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>Sin alertas activas.</p>
-          )}
-        </section>
+      <OverviewIndicators overview={data} />
+      <div className="dashboard-workspace">
+        <NetworkSchedule services={data.services.map((service) => ({ ...service, message: service.monitoringEnabled ? '' : 'Supervisión pausada' }))} metrics={canReadMetrics && !metrics.isError ? metrics.data?.points ?? [] : []} />
+        <RecentSignals items={activity.data ?? []} isError={activity.isError} isLoading={activity.isLoading} />
       </div>
       {topology.isError ? (
         <section className="notice error" role="alert">
@@ -156,7 +58,7 @@ export function DashboardPage() {
       ) : topology.data ? (
         <InfrastructureTopology topology={topology.data} />
       ) : (
-        <section className="notice">Consultando topología de infraestructura…</section>
+        <PanelSkeleton rows={3} label="Consultando topología de infraestructura" />
       )}
     </section>
   );

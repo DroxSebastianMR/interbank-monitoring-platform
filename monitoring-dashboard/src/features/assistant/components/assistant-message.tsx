@@ -1,5 +1,6 @@
 import { AssistantAvatar } from '@/features/assistant/components/assistant-avatar';
 import type { AssistantMessage as AssistantMessageType } from '@/features/assistant/types/assistant.types';
+import { formatDateTime } from '@/shared/utils/format';
 
 export function AssistantMessage({ message }: { message: AssistantMessageType }) {
   if (message.role === 'user') {
@@ -24,7 +25,7 @@ export function AssistantMessage({ message }: { message: AssistantMessageType })
         <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2 text-xs text-slate-500">
           <span>{source}</span>
           {hasEvidence && message.evidence?.asOf && (
-            <span>· Datos al {new Date(message.evidence.asOf).toLocaleString('es-PE')}</span>
+            <span>· Datos al {formatDateTime(message.evidence.asOf)}</span>
           )}
         </div>
       </article>

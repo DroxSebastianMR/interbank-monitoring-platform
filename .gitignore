@@ -25,6 +25,15 @@ tmp/
 **/.DS_Store
 **/Thumbs.db
 
+# Local design and browser tooling
+.agents/
+.codex/
+.impeccable/
+.playwright-cli/
+.playwright-mcp/
+output/playwright/
+skills-lock.json
+
 # Local certificates and credentials
 **/*.pem
 **/*.key
