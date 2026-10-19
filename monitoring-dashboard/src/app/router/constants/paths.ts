@@ -1,0 +1,15 @@
+export const PATHS = {
+  LOGIN: '/login',
+  DASHBOARD: '/',
+  SERVICES: '/services',
+  ENDPOINTS: '/endpoints',
+  SERVICE_DETAIL: (id: string) => `/services/${encodeURIComponent(id)}`,
+  INCIDENTS: '/incidents',
+  ALERTS: '/alerts',
+  ANALYTICS: '/analytics',
+  HEALTH: '/health',
+  ASSISTANT: '/assistant',
+  FORBIDDEN: '/403',
+  NOT_FOUND: '/404',
+  SERVER_ERROR: '/500',
+} as const;

@@ -4,6 +4,7 @@ Orquesta seis repositorios hermanos sin contener su código. Levanta el sistema 
 
 ## Documentación del proyecto
 
+- [Ejecutar el dashboard actual en un laboratorio Docker local](docs/DASHBOARD-LOCAL.md)
 - [Arquitectura y decisiones técnicas](docs/ARCHITECTURE.md)
 - [Instalación completa en Windows](docs/INSTALLATION-WINDOWS.md)
 - [Plan de pruebas y demostración](docs/TESTING.md)

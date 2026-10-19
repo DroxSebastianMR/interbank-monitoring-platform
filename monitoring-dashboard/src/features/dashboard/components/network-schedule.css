@@ -1,0 +1,209 @@
+.dashboard-page .service-state-panel {
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+  border-color: #d6e1da;
+}
+.dashboard-page .service-state-panel .panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 20px;
+}
+.dashboard-page .service-state-panel .panel-heading h2 {
+  font-size: 20px;
+}
+.service-state-count {
+  flex-shrink: 0;
+  color: #65766c;
+  font-size: 12px;
+}
+.service-state-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+.service-state-scroll:focus-visible {
+  outline: 2px solid #16804a;
+  outline-offset: -2px;
+}
+.service-state-table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  text-align: left;
+}
+.service-state-table thead th {
+  padding: 12px 14px;
+  background: #f6f8f7;
+  color: #59685f;
+  font-size: 11px;
+  font-weight: 600;
+  border-bottom: 1px solid #e3e9e5;
+}
+.service-state-table tbody th,
+.service-state-table tbody td {
+  padding: 18px 14px;
+  border-bottom: 1px solid #e3e9e5;
+  vertical-align: top;
+  font-size: 12px;
+}
+.service-state-table tbody th {
+  min-width: 175px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.service-state-table small {
+  display: block;
+  max-width: 155px;
+  margin-top: 5px;
+  color: #65766c;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.service-state-row.is-actionable {
+  cursor: pointer;
+}
+.service-state-row.is-actionable:hover,
+.service-state-row:focus-within {
+  background: #f5f9f6;
+}
+.service-state-name {
+  color: #233f2e;
+  text-decoration: none;
+}
+.service-state-name:hover {
+  text-decoration: underline;
+}
+.service-state-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.service-state-status svg {
+  width: 15px;
+  height: 15px;
+}
+.service-state-status--operational {
+  color: #167344;
+}
+.service-state-status--degraded {
+  color: #8b6000;
+}
+.service-state-status--unavailable {
+  color: #b42332;
+}
+.service-state-status--no_data {
+  color: #586776;
+}
+.service-state-latency,
+.service-state-table time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.service-state-risk {
+  color: #43534a;
+}
+.service-state-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #22633e;
+  min-height: 28px;
+  text-decoration: none;
+}
+.service-state-detail svg {
+  width: 14px;
+  height: 14px;
+}
+.service-state-name:focus-visible,
+.service-state-detail:focus-visible {
+  outline: 2px solid #16804a;
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.service-state-note {
+  padding: 12px 16px;
+  color: #65766c;
+  font-size: 12px;
+}
+.service-state-history {
+  padding: 16px 20px;
+}
+.service-state-history > summary {
+  color: #315e42;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.service-state-history summary:focus-visible {
+  outline: 2px solid #16804a;
+  outline-offset: 4px;
+}
+.service-state-trends > p {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #59685f;
+  line-height: 1.5;
+}
+.service-latency-trend {
+  margin: 18px 0 0;
+}
+.service-latency-trend figcaption {
+  font-size: 12px;
+  font-weight: 600;
+  color: #43534a;
+}
+.service-latency-trend svg {
+  width: 100%;
+  height: auto;
+  min-width: 420px;
+}
+.service-state-trends {
+  overflow-x: auto;
+}
+.service-latency-trend svg text {
+  fill: #59685f;
+  font-size: 10px;
+}
+.service-trend-grid {
+  stroke: #e1e8e3;
+  stroke-width: 1;
+}
+.service-trend-line {
+  fill: none;
+  stroke: #25804c;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.service-trend-point {
+  fill: #25804c;
+}
+.service-trend-samples {
+  font-size: 12px;
+  color: #59685f;
+}
+.service-trend-samples summary {
+  cursor: pointer;
+}
+.service-trend-sample-scroll {
+  max-height: 200px;
+  overflow: auto;
+  margin-top: 8px;
+}
+.service-trend-sample-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.service-trend-sample-scroll caption {
+  text-align: left;
+  margin-bottom: 8px;
+}
+.service-trend-sample-scroll th,
+.service-trend-sample-scroll td {
+  padding: 8px;
+  border-bottom: 1px solid #e3e9e5;
+}

@@ -1,0 +1,100 @@
+.dashboard-data-notice {
+  margin: 12px 0;
+  padding: 14px 18px;
+  border: 1px solid #e5d6af;
+  border-radius: 12px;
+  background: #fffcf5;
+  color: #554b35;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.dashboard-data-notice > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dashboard-data-notice svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+.dashboard-data-notice p {
+  margin: 5px 0;
+}
+.dashboard-data-notice ul {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+.dashboard-data-notice button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid #cfc6ae;
+  border-radius: 6px;
+  background: #fff;
+  color: #43534a;
+  font: inherit;
+  cursor: pointer;
+}
+.dashboard-data-notice button:focus-visible {
+  outline: 2px solid #16804a;
+  outline-offset: 3px;
+}
+.dashboard-data-notice button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.dashboard-access-state {
+  margin-top: 14px;
+  padding: 20px;
+  border: 1px solid #dbe3dd;
+  border-radius: 14px;
+  background: #fff;
+  color: #43534a;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.dashboard-access-state h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+.dashboard-access-state a,
+.dashboard-access-state button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  color: #22633e;
+  margin-top: 10px;
+  font: inherit;
+  font-weight: 600;
+}
+.dashboard-page .dashboard-skeleton-alert {
+  height: 56px;
+  min-height: 56px;
+}
+.dashboard-page .dashboard-skeleton-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.dashboard-page .dashboard-skeleton-metric {
+  border-radius: 14px;
+  min-height: 200px;
+  background: #f1f4f2;
+}
+@media (max-width: 1000px) {
+  .dashboard-page .dashboard-skeleton-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 580px) {
+  .dashboard-page .dashboard-skeleton-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-page .module-skeleton *,
+  .dashboard-page .panel-skeleton *,
+  .dashboard-page .spin {
+    animation: none !important;
+  }
+}

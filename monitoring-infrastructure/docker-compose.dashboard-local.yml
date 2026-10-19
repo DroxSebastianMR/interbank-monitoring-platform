@@ -1,0 +1,155 @@
+name: interbank-dashboard-local
+
+x-bank: &bank
+  build: ../tmp/dashboard-runtime/source/interbank-app-backend
+  image: interbank-dashboard-local-bank
+  restart: unless-stopped
+  environment: &bank-env
+    APP_PORT: 3000
+    NODE_ENV: development
+    DATABASE_URL: postgresql://local:${LOCAL_DB_PASSWORD}@postgres:5432/laboratory?schema=app
+    DIRECT_URL: postgresql://local:${LOCAL_DB_PASSWORD}@postgres:5432/laboratory?schema=app
+    JWT_SECRET: ${LOCAL_APP_JWT_SECRET}
+    BANK_ANALYTICS_TOKEN: ${LOCAL_ANALYTICS_TOKEN}
+    SESSION_CACHE_DRIVER: redis
+    REDIS_HOST: redis
+    SIMULATION_ENABLED: 'true'
+  depends_on:
+    bank-init: {condition: service_completed_successfully}
+    redis: {condition: service_healthy}
+  healthcheck:
+    test: [CMD, wget, -qO-, 'http://127.0.0.1:3000/health']
+    interval: 10s
+    timeout: 3s
+    retries: 12
+    start_period: 20s
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: local
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD}
+      POSTGRES_DB: laboratory
+    volumes: [local-postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U local -d laboratory']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  bank-init:
+    build: ../tmp/dashboard-runtime/source/interbank-app-backend
+    image: interbank-dashboard-local-bank
+    environment: *bank-env
+    command: [node, node_modules/prisma/build/index.js, migrate, deploy]
+    depends_on:
+      postgres: {condition: service_healthy}
+  app-backend-1:
+    <<: *bank
+    environment:
+      <<: *bank-env
+      INSTANCE_NAME: app-backend-1
+  app-backend-2:
+    <<: *bank
+    environment:
+      <<: *bank-env
+      INSTANCE_NAME: app-backend-2
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports: ['127.0.0.1:8080:80']
+    volumes:
+      - ../tmp/dashboard-runtime/source/monitoring-infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../tmp/dashboard-runtime/source/monitoring-infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      app-backend-1: {condition: service_healthy}
+      app-backend-2: {condition: service_healthy}
+  monitoring-ai:
+    build: ../tmp/dashboard-runtime/source/monitoring-ai
+    restart: unless-stopped
+    environment:
+      MODEL_MODE: baseline
+      ASSISTANT_PROVIDER: none
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+  monitoring-init:
+    build: ../tmp/dashboard-runtime/source/monitoring-backend
+    image: interbank-dashboard-local-monitor
+    volumes:
+      - ../tmp/dashboard-runtime/source/monitoring-backend/src:/app/src:ro
+      - ../tmp/dashboard-runtime/source/monitoring-backend/tsconfig.json:/app/tsconfig.json:ro
+    environment: &monitor-env
+      DATABASE_URL: postgresql://local:${LOCAL_DB_PASSWORD}@postgres:5432/laboratory?schema=monitoring
+      JWT_SECRET: ${LOCAL_MONITOR_JWT_SECRET}
+      NODE_ENV: development
+      MONITORING_PORT: 4000
+      REDIS_HOST: redis
+      AI_SERVICE_URL: http://monitoring-ai:8000
+      PROMETHEUS_URL: http://prometheus:9090
+      APP_BACKEND_URL: http://nginx
+      BANK_ANALYTICS_URL: http://app-backend-1:3000
+      BANK_ANALYTICS_TOKEN: ${LOCAL_ANALYTICS_TOKEN}
+      MONITORING_DELIVERY_ENABLED: 'false'
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      DASHBOARD_ADMIN_EMPLOYEE_CODE: LOCAL-ADMIN
+      DASHBOARD_ADMIN_EMAIL: admin@monitoring.local
+      DASHBOARD_ADMIN_PASSWORD: ${LOCAL_ADMIN_PASSWORD}
+      DASHBOARD_ADMIN_FIRST_NAME: Administrador
+      DASHBOARD_ADMIN_LAST_NAME: Local
+    command: [sh, -c, 'node node_modules/prisma/build/index.js migrate deploy && node --import tsx prisma/seed.ts']
+    depends_on:
+      postgres: {condition: service_healthy}
+  monitoring-backend:
+    build: ../tmp/dashboard-runtime/source/monitoring-backend
+    image: interbank-dashboard-local-monitor
+    restart: unless-stopped
+    environment: *monitor-env
+    ports: ['127.0.0.1:4000:4000']
+    depends_on:
+      monitoring-init: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+      monitoring-ai: {condition: service_healthy}
+      nginx: {condition: service_started}
+    healthcheck:
+      test: [CMD, wget, -qO-, 'http://127.0.0.1:4000/health']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+  prometheus:
+    image: prom/prometheus:v3.3.0
+    restart: unless-stopped
+    volumes:
+      - ../tmp/dashboard-runtime/source/monitoring-infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - local-prometheus:/prometheus
+    ports: ['127.0.0.1:9090:9090']
+  monitoring-dashboard:
+    build:
+      context: ../monitoring-dashboard
+      args:
+        VITE_API_URL: http://localhost:4000
+    restart: unless-stopped
+    ports: ['127.0.0.1:5173:80']
+    depends_on:
+      monitoring-backend: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -qO-, 'http://127.0.0.1/dashboard-health']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  local-postgres:
+  local-prometheus:

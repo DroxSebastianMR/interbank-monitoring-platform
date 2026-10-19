@@ -1,0 +1,228 @@
+.dashboard-page .performance-panel {
+  margin-top: 14px;
+  min-width: 0;
+  border: 1px solid #d6e1da;
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+}
+.performance-panel > .panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid #e3e9e5;
+}
+.performance-panel .panel-heading h2 {
+  font-size: 20px;
+}
+.performance-panel .panel-heading p {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #59685f;
+}
+.performance-control {
+  min-width: 260px;
+  max-width: 100%;
+}
+.performance-control label {
+  display: block;
+  margin-bottom: 5px;
+  color: #59685f;
+  font-size: 12px;
+}
+.performance-control [data-slot="select-trigger"] {
+  width: 100%;
+}
+.performance-body {
+  padding: 16px 20px;
+}
+.performance-source,
+.performance-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #59685f;
+}
+.performance-empty {
+  padding: 28px 20px;
+  margin: 0;
+  color: #59685f;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.performance-empty p {
+  margin: 0 0 8px;
+}
+.performance-empty a,
+.performance-selection a,
+.performance-references a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #22633e;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  min-height: 28px;
+}
+.performance-panel a svg {
+  width: 14px;
+  height: 14px;
+}
+.performance-panel a:hover {
+  text-decoration: underline;
+}
+.performance-panel a:focus-visible,
+.performance-panel summary:focus-visible {
+  outline: 2px solid #16804a;
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+.performance-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  color: #43534a;
+  font-size: 12px;
+}
+.performance-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.performance-gap-key,
+.performance-insufficient-key {
+  width: 18px;
+  height: 10px;
+  border: 1px solid #dce3de;
+  background: #f0f3f1;
+}
+.performance-insufficient-key {
+  border-style: dashed;
+  background: #fff9ee;
+}
+.performance-chart-scroll {
+  overflow-x: auto;
+}
+.performance-chart {
+  position: relative;
+  min-width: 620px;
+}
+.performance-chart > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.performance-chart text {
+  fill: #59685f;
+  font-size: 11px;
+}
+.performance-grid {
+  stroke: #e2e8e4;
+  stroke-width: 1;
+}
+.performance-gap {
+  fill: #f0f3f1;
+}
+.performance-insufficient {
+  fill: #fff9ee;
+}
+.performance-incident-line {
+  stroke: #a56d32;
+  stroke-dasharray: 3 4;
+  opacity: 0.6;
+}
+.performance-chart .performance-incident-symbol {
+  fill: #8b6000;
+}
+.performance-chart circle[role="button"] {
+  cursor: pointer;
+}
+.performance-chart circle[role="button"]:focus-visible {
+  outline: 2px solid #172e22;
+  outline-offset: 3px;
+}
+.performance-tooltip {
+  position: absolute;
+  z-index: 2;
+  top: 36px;
+  max-width: 280px;
+  padding: 10px 12px;
+  border: 1px solid #d6e1da;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px #17352812;
+  background: #fff;
+  color: #43534a;
+  font-size: 11px;
+}
+.performance-tooltip span {
+  display: block;
+  margin-top: 4px;
+}
+.performance-values,
+.performance-references {
+  margin: 12px 0;
+  color: #43534a;
+  font-size: 12px;
+}
+.performance-values summary,
+.performance-references summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 5px 0;
+}
+.performance-values > div {
+  max-height: 280px;
+  overflow: auto;
+  margin-top: 8px;
+}
+.performance-values table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.performance-values caption {
+  text-align: left;
+  padding: 8px;
+}
+.performance-values th,
+.performance-values td {
+  padding: 9px;
+  border-bottom: 1px solid #e3e9e5;
+}
+.performance-references ul {
+  padding-left: 18px;
+}
+.performance-references li {
+  margin: 6px 0;
+  line-height: 1.7;
+}
+.performance-selection {
+  padding: 12px 14px;
+  margin: 12px 0;
+  border: 1px solid #d6e1da;
+  border-radius: 10px;
+  background: #f7faf8;
+  font-size: 12px;
+}
+.performance-selection p {
+  margin: 0 0 5px;
+  line-height: 1.6;
+  color: #43534a;
+}
+@media (max-width: 600px) {
+  .performance-control {
+    width: 100%;
+    min-width: 0;
+  }
+  .performance-body {
+    padding: 14px;
+  }
+}
