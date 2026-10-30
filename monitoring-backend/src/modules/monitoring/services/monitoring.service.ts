@@ -22,7 +22,7 @@ import type {
   OperationalEvaluation,
   RuleProfile,
 } from '@/modules/monitoring/interfaces/operational-evaluation';
-import type { ServiceSnapshot } from '@/modules/service-state/interfaces/service-state';
+import type { ServiceSnapshot, ServiceStatus } from '@/modules/service-state/interfaces/service-state';
 @Injectable()
 export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MonitoringService.name);
