@@ -24,6 +24,25 @@ enum EmployeeStatus {
   @@schema("monitoring")
 }
 
+enum IncidentAttentionState {
+  DETECTED
+  INVESTIGATING
+  IDENTIFIED
+  RECOVERING
+  RESOLVED
+  CLOSED
+
+  @@schema("monitoring")
+}
+
+enum IncidentEventOrigin {
+  SYSTEM
+  OPERATOR
+  IMPORT
+
+  @@schema("monitoring")
+}
+
 model Employee {
   id                     String                  @id @default(uuid()) @db.Uuid
   employeeCode           String                  @unique @map("employee_code") @db.VarChar(30)
@@ -45,6 +64,9 @@ model Employee {
   auditLogs              AuditLog[]
   assistantConversations AssistantConversation[]
   notifications          Notification[]
+  assignedIncidents      Incident[] @relation("IncidentOwner")
+  acknowledgedIncidents  Incident[] @relation("IncidentAcknowledger")
+  incidentEvents         IncidentEvent[] @relation("IncidentEventActor")
 
   @@index([status])
   @@map("employees")
@@ -208,8 +230,52 @@ model Incident {
   lastObservedAt DateTime  @default(now())
   resolvedAt     DateTime?
   alerts         Alert[]
+  attentionState IncidentAttentionState @default(DETECTED)
+  technicalStatus String? @db.VarChar(20)
+  version        Int @default(1)
+  occurrence     Int @default(1)
+  assigneeId     String? @db.Uuid
+  acknowledgedAt DateTime?
+  acknowledgedById String? @db.Uuid
+  closedAt       DateTime?
+  closingSummary String? @db.VarChar(2000)
+  previousIncidentId String? @db.Uuid
+  recoveryEvidence Json?
+  lastEvidence   Json?
+  severityOverride Boolean @default(false)
+  legacyArchived Boolean @default(false)
+  assignee Employee? @relation("IncidentOwner", fields: [assigneeId], references: [id], onDelete: Restrict)
+  acknowledgedBy Employee? @relation("IncidentAcknowledger", fields: [acknowledgedById], references: [id], onDelete: Restrict)
+  previousIncident Incident? @relation("IncidentRecurrence", fields: [previousIncidentId], references: [id], onDelete: Restrict)
+  subsequentIncidents Incident[] @relation("IncidentRecurrence")
+  events IncidentEvent[]
 
   @@index([serviceKey, openedAt])
+  @@index([serviceKey, closedAt])
+  @@index([openedAt, id])
+  @@index([closedAt, openedAt, id])
+  @@schema("monitoring")
+}
+
+model IncidentEvent {
+  id          String @id @default(uuid()) @db.Uuid
+  incidentId  String @db.Uuid
+  version     Int
+  occurrence  Int
+  kind        String @db.VarChar(40)
+  origin      IncidentEventOrigin
+  actorId     String? @db.Uuid
+  reason      String @db.VarChar(2000)
+  payload     Json?
+  commandId   String? @db.Uuid
+  commandFingerprint String? @db.VarChar(64)
+  createdAt   DateTime @default(now())
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  actor       Employee? @relation("IncidentEventActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@unique([incidentId, version])
+  @@unique([incidentId, commandId])
+  @@index([incidentId, occurrence, kind])
   @@schema("monitoring")
 }
 

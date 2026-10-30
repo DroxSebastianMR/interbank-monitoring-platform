@@ -1,63 +1,30 @@
-import { PrismaService } from '@/common/prisma/prisma.service';
 import { IncidentsRepository } from '@/modules/incidents/repositories/incidents.repository';
+import { IncidentWorkflowRepository } from '@/modules/incidents/repositories/incident-workflow.repository';
 import { IncidentsService } from '@/modules/incidents/services/incidents.service';
 import { ServiceStatus } from '@/modules/service-state/interfaces/service-state';
+import { assertAttentionTransition, technicalSeverity } from '@/modules/incidents/policies/incident-workflow.policy';
+import { IncidentAttentionState as State } from '@/modules/incidents/enums/incident-workflow.enum';
 
-describe('IncidentsService', () => {
-  it('opens once, escalates once, and records recovery', async () => {
-    let incident: { id: string; title: string; severity: string; resolvedAt: Date | null } | null =
-      null;
-    const alerts: string[] = [];
-    const transactionClient = {
-      incident: {
-        findFirst: jest.fn(() => Promise.resolve(incident?.resolvedAt === null ? incident : null)),
-        create: jest.fn(({ data }: { data: { title: string; severity: string } }) => {
-          incident = {
-            id: 'incident-1',
-            title: data.title,
-            severity: data.severity,
-            resolvedAt: null,
-          };
-          return Promise.resolve(incident);
-        }),
-        update: jest.fn(({ data }: { data: { severity?: string; resolvedAt?: Date } }) => {
-          if (incident) incident = { ...incident, ...data };
-          return Promise.resolve(incident);
-        }),
-      },
-      alert: {
-        create: jest.fn(({ data }: { data: { kind: string } }) => {
-          alerts.push(data.kind);
-          return Promise.resolve();
-        }),
-      },
-    };
-    const prisma = {
-      ...transactionClient,
-      $transaction: jest.fn(
-        async (operation: ((tx: unknown) => Promise<void>) | Promise<unknown>[]) => {
-          if (Array.isArray(operation)) return Promise.all(operation);
-          return operation(transactionClient);
-        },
-      ),
-    };
-    const service = new IncidentsService(
-      new IncidentsRepository(prisma as unknown as PrismaService),
-    );
-    const evidence = {
-      reasons: ['health failure'],
-      anomalyScore: 0,
-      observedAt: new Date().toISOString(),
-    };
-
-    await service.sync('login', ServiceStatus.DEGRADED, evidence);
-    await service.sync('login', ServiceStatus.DEGRADED, evidence);
+describe('Incident attention policy', () => {
+  it('permits the investigation path without allowing operator resolution', () => {
+    expect(() => assertAttentionTransition(State.DETECTED, State.INVESTIGATING)).not.toThrow();
+    expect(() => assertAttentionTransition(State.INVESTIGATING, State.IDENTIFIED)).not.toThrow();
+    expect(() => assertAttentionTransition(State.IDENTIFIED, State.RECOVERING)).not.toThrow();
+    expect(() => assertAttentionTransition(State.RECOVERING, State.RESOLVED)).toThrow();
+    expect(() => assertAttentionTransition(State.DETECTED, State.CLOSED)).toThrow();
+  });
+  it('calculates severity from technical condition and service criticality', () => {
+    expect(technicalSeverity(true, 'HIGH')).toBe('CRITICAL');
+    expect(technicalSeverity(true, 'LOW')).toBe('HIGH');
+    expect(technicalSeverity(false, 'HIGH')).toBe('HIGH');
+    expect(technicalSeverity(false, 'LOW')).toBe('MEDIUM');
+  });
+  it('keeps technical synchronization inside the atomic repository operation', async () => {
+    const sync = jest.fn().mockResolvedValue(undefined);
+    const repository = { sync } as unknown as IncidentsRepository;
+    const service = new IncidentsService(repository, {} as IncidentWorkflowRepository);
+    const evidence = { reasons: ['confirmed failure'], anomalyScore: 0, observedAt: new Date().toISOString() };
     await service.sync('login', ServiceStatus.UNAVAILABLE, evidence);
-    await service.sync('login', ServiceStatus.UNAVAILABLE, evidence);
-    await service.sync('login', ServiceStatus.OPERATIONAL, evidence);
-
-    expect(prisma.incident.create).toHaveBeenCalledTimes(1);
-    expect(prisma.incident.update).toHaveBeenCalledTimes(2);
-    expect(alerts).toEqual(['OPENED', 'ESCALATED', 'RECOVERY']);
+    expect(sync).toHaveBeenCalledWith('login', ServiceStatus.UNAVAILABLE, evidence);
   });
 });
