@@ -24,6 +24,25 @@ enum EmployeeStatus {
   @@schema("monitoring")
 }
 
+enum IncidentAttentionState {
+  DETECTED
+  INVESTIGATING
+  IDENTIFIED
+  RECOVERING
+  RESOLVED
+  CLOSED
+
+  @@schema("monitoring")
+}
+
+enum IncidentEventOrigin {
+  SYSTEM
+  OPERATOR
+  IMPORT
+
+  @@schema("monitoring")
+}
+
 model Employee {
   id                     String                  @id @default(uuid()) @db.Uuid
   employeeCode           String                  @unique @map("employee_code") @db.VarChar(30)
@@ -45,6 +64,10 @@ model Employee {
   auditLogs              AuditLog[]
   assistantConversations AssistantConversation[]
   notifications          Notification[]
+  assignedIncidents      Incident[] @relation("IncidentOwner")
+  acknowledgedIncidents  Incident[] @relation("IncidentAcknowledger")
+  incidentEvents         IncidentEvent[] @relation("IncidentEventActor")
+  approvedStatusNotices  StatusPublication[]
 
   @@index([status])
   @@map("employees")
@@ -156,6 +179,7 @@ model MonitoredService {
   lastMessage          String?
   anomalyScore         Float?
   riskLevel            String?              @db.VarChar(20)
+  evaluation           Json?
   consecutiveFailures  Int                  @default(0)
   consecutiveSuccesses Int                  @default(0)
   createdAt            DateTime             @default(now())
@@ -174,6 +198,7 @@ model HealthCheck {
   reachable Boolean          @default(false)
   timedOut  Boolean          @default(false)
   message   String?
+  evaluation Json?
   origin    String           @default("SCHEDULED") @db.VarChar(20)
   checkedAt DateTime         @default(now())
   service   MonitoredService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
@@ -206,8 +231,53 @@ model Incident {
   lastObservedAt DateTime  @default(now())
   resolvedAt     DateTime?
   alerts         Alert[]
+  attentionState IncidentAttentionState @default(DETECTED)
+  technicalStatus String? @db.VarChar(20)
+  version        Int @default(1)
+  occurrence     Int @default(1)
+  assigneeId     String? @db.Uuid
+  acknowledgedAt DateTime?
+  acknowledgedById String? @db.Uuid
+  closedAt       DateTime?
+  closingSummary String? @db.VarChar(2000)
+  previousIncidentId String? @db.Uuid
+  recoveryEvidence Json?
+  lastEvidence   Json?
+  severityOverride Boolean @default(false)
+  legacyArchived Boolean @default(false)
+  assignee Employee? @relation("IncidentOwner", fields: [assigneeId], references: [id], onDelete: Restrict)
+  acknowledgedBy Employee? @relation("IncidentAcknowledger", fields: [acknowledgedById], references: [id], onDelete: Restrict)
+  previousIncident Incident? @relation("IncidentRecurrence", fields: [previousIncidentId], references: [id], onDelete: Restrict)
+  subsequentIncidents Incident[] @relation("IncidentRecurrence")
+  events IncidentEvent[]
+  publicNotices StatusPublication[]
 
   @@index([serviceKey, openedAt])
+  @@index([serviceKey, closedAt])
+  @@index([openedAt, id])
+  @@index([closedAt, openedAt, id])
+  @@schema("monitoring")
+}
+
+model IncidentEvent {
+  id          String @id @default(uuid()) @db.Uuid
+  incidentId  String @db.Uuid
+  version     Int
+  occurrence  Int
+  kind        String @db.VarChar(40)
+  origin      IncidentEventOrigin
+  actorId     String? @db.Uuid
+  reason      String @db.VarChar(2000)
+  payload     Json?
+  commandId   String? @db.Uuid
+  commandFingerprint String? @db.VarChar(64)
+  createdAt   DateTime @default(now())
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  actor       Employee? @relation("IncidentEventActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@unique([incidentId, version])
+  @@unique([incidentId, commandId])
+  @@index([incidentId, occurrence, kind])
   @@schema("monitoring")
 }
 
@@ -303,5 +373,54 @@ model Notification {
   @@unique([employeeId, eventId])
   @@index([employeeId, createdAt])
   @@map("notifications")
+  @@schema("monitoring")
+}
+
+model PublicServiceStatus {
+  serviceKey        String @id @db.VarChar(60)
+  nextSequence      Int @default(0)
+  publishedSequence Int @default(0)
+  status            String @default("NO_DATA") @db.VarChar(20)
+  lastPublicationId String? @unique @db.Uuid
+  updatedAt         DateTime @updatedAt
+  lastPublication   StatusPublication? @relation("LatestPublicNotice", fields: [lastPublicationId], references: [id], onDelete: Restrict)
+  publications      StatusPublication[] @relation("PublicNoticeHistory")
+
+  @@schema("monitoring")
+}
+
+model StatusPublication {
+  id                   String @id @default(uuid()) @db.Uuid
+  serviceKey           String @db.VarChar(60)
+  sequence             Int
+  deduplicationKey      String @unique @db.VarChar(200)
+  incidentId           String? @db.Uuid
+  occurrence           Int?
+  sourceServiceVersion Int
+  sourceTechnicalStatus String @db.VarChar(20)
+  kind                 String @db.VarChar(20)
+  status               String @db.VarChar(20)
+  templateVersion      String @db.VarChar(40)
+  title                String @db.VarChar(200)
+  body                 String @db.VarChar(1000)
+  state                String @default("PENDING") @db.VarChar(20)
+  attempts             Int @default(0)
+  lastError            String? @db.VarChar(100)
+  nextAttemptAt        DateTime @default(now())
+  createdAt            DateTime @default(now())
+  publishedAt          DateTime?
+  visibleAt            DateTime?
+  expiresAt            DateTime?
+  approvedById         String? @db.Uuid
+  approvalReason       String? @db.VarChar(500)
+  service              PublicServiceStatus @relation("PublicNoticeHistory", fields: [serviceKey], references: [serviceKey], onDelete: Restrict)
+  latestFor            PublicServiceStatus? @relation("LatestPublicNotice")
+  incident             Incident? @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  approvedBy           Employee? @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+
+  @@unique([serviceKey, sequence])
+  @@index([state, nextAttemptAt])
+  @@index([serviceKey, state, sequence])
+  @@index([incidentId, createdAt])
   @@schema("monitoring")
 }

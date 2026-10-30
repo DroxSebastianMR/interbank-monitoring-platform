@@ -15,8 +15,8 @@ interface PrometheusResponse {
 
 export interface TrafficMetrics {
   requestRate: number;
-  errorRate: number;
-  latencyP95Ms: number;
+  errorRate: number | null;
+  latencyP95Ms: number | null;
 }
 
 export interface InfrastructureInstanceTelemetry {
@@ -78,8 +78,8 @@ export class PrometheusMetricsService {
       if (requestRate === null || requestRate <= 0) return null;
       return {
         requestRate,
-        errorRate: Math.min(1, Math.max(0, (errorRatePerSecond ?? 0) / requestRate)),
-        latencyP95Ms: latencyP95Ms ?? 0,
+        errorRate: errorRatePerSecond === null ? null : Math.min(1, Math.max(0, errorRatePerSecond / requestRate)),
+        latencyP95Ms,
       };
     } catch (error) {
       this.warnUnavailable(error);

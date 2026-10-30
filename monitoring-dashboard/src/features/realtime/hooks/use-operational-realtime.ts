@@ -17,7 +17,10 @@ export function useOperationalRealtime(employeeId: string | undefined, permissio
     const key = ['endpoint-observability', employeeId];
     const resync = () => {
       if (allowed.includes('analytics.read')) void client.invalidateQueries({ queryKey: key });
-      if (allowed.includes('incidents.read')) void client.invalidateQueries({ queryKey: ['incidents', employeeId] });
+      if (allowed.includes('incidents.read')) {
+        void client.invalidateQueries({ queryKey: ['incidents', employeeId] });
+        void client.invalidateQueries({ queryKey: ['incident-detail', employeeId] });
+      }
       if (allowed.includes('alerts.read')) void client.invalidateQueries({ queryKey: ['alerts', employeeId] });
     };
     const socket = io(`${env.apiUrl.replace(/\/$/, '')}/operations`, {

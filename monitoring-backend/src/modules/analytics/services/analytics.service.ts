@@ -4,7 +4,7 @@ import { MonitoredServicesService } from '@/modules/monitored-services/services/
 export class AnalyticsService {
   constructor(private readonly services: MonitoredServicesService) {}
   summary() {
-    const services = this.services.findAll();
+    const services = this.services.observedAll();
     const byStatus = services.reduce<Record<string, number>>((counts, service) => {
       counts[service.status] = (counts[service.status] ?? 0) + 1;
       return counts;

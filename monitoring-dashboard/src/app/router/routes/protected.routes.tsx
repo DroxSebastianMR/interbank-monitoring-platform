@@ -20,6 +20,7 @@ export const protectedRoutes: RouteObject[] = [
         Component: (await import('@/features/services/pages/service-detail-page')).ServiceDetailPage,
       }) },
       { path: PATHS.INCIDENTS, lazy: async () => ({ Component: (await import('@/features/incidents/pages/incidents-page')).IncidentsPage }) },
+      { path: '/incidents/:id', lazy: async () => ({ Component: (await import('@/features/incidents/pages/incident-detail-page')).IncidentDetailPage }) },
       { path: PATHS.ALERTS, lazy: async () => ({ Component: (await import('@/features/alerts/pages/alerts-page')).AlertsPage }) },
       { path: PATHS.ANALYTICS, lazy: async () => ({ Component: (await import('@/features/analytics/pages/analytics-page')).AnalyticsPage }) },
       { path: PATHS.HEALTH, lazy: async () => ({

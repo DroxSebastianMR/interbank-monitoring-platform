@@ -125,6 +125,9 @@ export class MonitoredServicesRepository {
         data: {
           monitoringEnabled: enabled,
           pausedReason: enabled ? null : reason,
+          evaluation: Prisma.DbNull,
+          consecutiveFailures: 0,
+          consecutiveSuccesses: 0,
           version: { increment: 1 },
         },
       });
@@ -154,7 +157,7 @@ export class MonitoredServicesRepository {
       select: { id: true },
     });
     const updateService = this.prisma.monitoredService.update({
-      where: { code },
+      where: { code, version: snapshot.version ?? 1, monitoringEnabled: true },
       data: {
         status: snapshot.status,
         lastCheckedAt: snapshot.lastCheckedAt ? new Date(snapshot.lastCheckedAt) : null,
@@ -162,6 +165,7 @@ export class MonitoredServicesRepository {
         lastMessage: snapshot.message,
         anomalyScore: snapshot.anomalyScore,
         riskLevel: snapshot.riskLevel,
+        evaluation: snapshot.evaluation ?? undefined,
         consecutiveFailures: snapshot.consecutiveFailures,
         consecutiveSuccesses: snapshot.consecutiveSuccesses ?? 0,
       },
@@ -175,6 +179,7 @@ export class MonitoredServicesRepository {
         timedOut,
         message: snapshot.message,
         origin,
+        evaluation: snapshot.evaluation ?? undefined,
         checkedAt: snapshot.lastCheckedAt ? new Date(snapshot.lastCheckedAt) : new Date(),
       },
     });

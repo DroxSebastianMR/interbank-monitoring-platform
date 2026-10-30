@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DashboardRepository } from '@/modules/analytics/repositories/dashboard.repository';
 import { MonitoredServicesService } from '@/modules/monitored-services/services/monitored-services.service';
 import { ServiceStatus } from '@/modules/service-state/interfaces/service-state';
+import { observedService } from '@/modules/service-state/utils/observed-service';
 import type { DashboardMetricsQueryDto } from '@/modules/analytics/dto/dashboard-query.dto';
 import { PrometheusMetricsService } from '@/modules/monitoring/services/prometheus-metrics.service';
 
@@ -25,24 +26,25 @@ export class DashboardService {
     const services = this.services.findAll();
     const { checks, incidents, alerts, activeIncidentsCount, activeAlertsCount } =
       await this.repository.snapshot(new Date(generatedAt.getTime() - 60 * 60_000));
-    const statusFor = (
-      checkedAt: string | null,
-      status: ServiceStatus,
-      enabled: boolean,
-    ): ServiceStatus | 'NO_DATA' =>
-      !enabled ||
-      !checkedAt ||
-      generatedAt.getTime() - new Date(checkedAt).getTime() > STALE_AFTER_MS
-        ? 'NO_DATA'
-        : status;
-    const summaries = services.map((service) => ({
-      id: service.id,
-      name: service.name,
-      status: statusFor(service.lastCheckedAt, service.status, service.monitoringEnabled !== false),
-      lastCheckedAt: service.lastCheckedAt,
-      latencyMs: service.lastCheckedAt ? service.latencyMs : null,
-      monitoringEnabled: service.monitoringEnabled !== false,
-    }));
+    const summaries = services.map((service) => {
+      const observed = observedService(
+        service,
+        this.config.get<number>('rules.observationMaxAgeMs', STALE_AFTER_MS),
+        generatedAt.getTime(),
+      );
+      return {
+        id: service.id,
+        name: service.name,
+        status: observed.status,
+        lastKnownStatus: observed.lastKnownStatus,
+        dataFreshness: observed.dataFreshness,
+        pendingConfirmation: observed.pendingConfirmation,
+        lastCheckedAt: service.lastCheckedAt,
+        latencyMs: service.lastCheckedAt ? service.latencyMs : null,
+        monitoringEnabled: service.monitoringEnabled !== false,
+        evaluation: service.evaluation ?? null,
+      };
+    });
     const count = (status: ServiceStatus | 'NO_DATA') =>
       summaries.filter((service) => service.status === status).length;
     const lastObservationAt =
@@ -81,7 +83,7 @@ export class DashboardService {
       lastMonitoringCycleAt: lastObservationAt,
       lastObservationAt,
       dataFreshness: lastObservationAt
-        ? generatedAt.getTime() - new Date(lastObservationAt).getTime() <= STALE_AFTER_MS
+        ? summaries.every((service) => service.dataFreshness === 'CURRENT')
           ? 'CURRENT'
           : 'STALE'
         : 'NO_DATA',
