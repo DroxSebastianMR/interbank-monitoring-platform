@@ -12,6 +12,8 @@ import { incidentClosureBlockers } from '@/modules/incidents/policies/incident-c
 import { incidentPeople, eligibleAssignee } from '@/modules/incidents/repositories/incident-selectors';
 import { IncidentEventKind as Kind } from '@/modules/incidents/enums/incident-workflow.enum';
 import { observationFreshness } from '@/modules/service-state/utils/observation-freshness';
+import { queuePublicNotice } from '@/modules/public-status/repositories/queue-public-notice';
+import { PublicNoticeKind } from '@/modules/public-status/enums/public-notice.enum';
 
 @Injectable()
 export class IncidentsRepository {
@@ -34,7 +36,11 @@ export class IncidentsRepository {
   async detail(id: string) {
     const incident = await this.prisma.incident.findUnique({ where: { id }, include: incidentPeople });
     if (!incident) throw new NotFoundException('Incidente no encontrado');
-    return { ...incident, closureBlockers: await incidentClosureBlockers(this.prisma, incident) };
+    const closureBlockers = await incidentClosureBlockers(this.prisma, incident);
+    if (!incident.closedAt && this.config?.get<string>('PUBLIC_STATUS_ENABLED', 'false') !== 'true') {
+      closureBlockers.push('La publicación pública no está habilitada.');
+    }
+    return { ...incident, closureBlockers };
   }
 
   async timeline(id: string, beforeVersion?: number) {
@@ -75,6 +81,7 @@ export class IncidentsRepository {
         await this.event(tx, created, Kind.DETECTED, 'Afectación técnica confirmada.', { evidence: { ...evidence } });
         await tx.alert.create({ data: { incidentId: created.id, kind: 'OPENED', message: created.title } });
         await this.outbox(tx, created.id, 'incident.created');
+        await this.publicNotice(tx, created, service.version, status, PublicNoticeKind.INITIAL);
         return { id: created.id, created: true };
       }
       if (observedAt.getTime() <= current.lastObservedAt.getTime()) return null;
@@ -117,6 +124,8 @@ export class IncidentsRepository {
       await this.event(tx, updated, kind, reason, { evidence: { ...evidence }, previousAttentionState: current.attentionState });
       if (alertKind) await tx.alert.create({ data: { incidentId: current.id, kind: alertKind, message: `${serviceKey}: ${reason}` } });
       await this.outbox(tx, current.id, kind === Kind.RECOVERED ? 'incident.resolved' : 'incident.updated');
+      await this.publicNotice(tx, updated, service.version, status,
+        kind === Kind.RECOVERED ? PublicNoticeKind.RECOVERY : kind === Kind.REOPENED ? PublicNoticeKind.INITIAL : PublicNoticeKind.UPDATE);
       return { id: current.id, created: false };
     }, { timeout: 5000 });
     if (result) this.events?.publish(OperationalChannel.INCIDENTS,
@@ -133,5 +142,15 @@ export class IncidentsRepository {
     if (this.config?.get<string>('MONITORING_DELIVERY_ENABLED') === 'true') {
       await tx.operationalOutbox.create({ data: { incidentId, eventType } });
     }
+  }
+
+  private async publicNotice(tx: Prisma.TransactionClient,
+    incident: { id: string; serviceKey: string; occurrence: number; version: number },
+    serviceVersion: number, status: ServiceStatus, kind: PublicNoticeKind) {
+    if (this.config?.get<string>('PUBLIC_STATUS_ENABLED', 'false') !== 'true') return;
+    const suffix = kind === PublicNoticeKind.UPDATE ? `:${incident.version}` : '';
+    await queuePublicNotice(tx, { serviceKey: incident.serviceKey, serviceVersion, technicalStatus: status,
+      incidentId: incident.id, occurrence: incident.occurrence, kind,
+      deduplicationKey: `${incident.id}:${incident.occurrence}:${kind}${suffix}:c${serviceVersion}` });
   }
 }

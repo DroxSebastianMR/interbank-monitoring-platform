@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { BrainCircuit, Gauge, RadioTower, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/app/providers/auth/use-auth';
 import { servicesService } from '@/features/services/services/services.service';
+import { PublicNoticeApproval } from '@/features/services/forms/public-notice-approval';
 import { ServiceActions } from '@/features/services/forms/service-actions';
 import { ServiceStatusBadge } from '@/features/services/components/service-status-badge';
 import { ServiceKpiCard, ServiceKpiGrid } from '@/features/services/components/service-kpi-card';
@@ -103,6 +104,7 @@ export function ServiceDetailPage() {
           service={current}
         />
       )}
+      <PublicNoticeApproval key={current.id} service={current} />
       {checks.isLoading ? (
         <PanelSkeleton rows={5} label="Cargando observaciones" />
       ) : checks.isError ? (

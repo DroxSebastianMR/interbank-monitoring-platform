@@ -101,6 +101,7 @@ services:
     restart: unless-stopped
     environment:
       MONITORING_PORT: 4000
+      PUBLIC_STATUS_ENABLED: ${PUBLIC_STATUS_ENABLED:-false}
       MONITORING_DELIVERY_ENABLED: ${MONITORING_DELIVERY_ENABLED:-false}
       NODE_ENV: development
       DATABASE_URL: ${MONITORING_DATABASE_URL}
@@ -147,6 +148,23 @@ services:
       monitoring-backend: {condition: service_healthy}
     healthcheck:
       test: [CMD, wget, -qO-, http://127.0.0.1/dashboard-health]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  monitoring-status-page:
+    profiles: [public-status]
+    build:
+      context: ../monitoring-dashboard
+      target: public-status
+      args:
+        VITE_API_URL: ${PUBLIC_STATUS_API_URL:-http://localhost:4000}
+    restart: unless-stopped
+    ports: ["127.0.0.1:5174:80"]
+    networks: [monitoring-network]
+    # Static page starts independently, including when the monitored bank is down.
+    healthcheck:
+      test: [CMD, wget, -qO-, http://127.0.0.1/status-health]
       interval: 10s
       timeout: 3s
       retries: 5

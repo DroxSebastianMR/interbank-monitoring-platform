@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IncidentAction, IncidentEventKind } from '@/modules/incidents/enums/incident-workflow.enum';
@@ -21,7 +22,8 @@ type IncidentCommand =
 @Injectable()
 export class IncidentWorkflowRepository {
   constructor(private readonly prisma: PrismaService,
-    @Optional() private readonly events?: OperationalEventsService) {}
+    @Optional() private readonly events?: OperationalEventsService,
+    @Optional() private readonly config?: ConfigService) {}
 
   async execute(id: string, actorId: string, command: IncidentCommand) {
     const initial = await this.prisma.incident.findUnique({ where: { id }, select: { serviceKey: true } });
@@ -77,6 +79,9 @@ export class IncidentWorkflowRepository {
           data.severity = command.input.severity; data.severityOverride = true;
           eventKind = IncidentEventKind.SEVERITY_CHANGED; break;
         case IncidentAction.CLOSE: {
+          if (this.config?.get<string>('PUBLIC_STATUS_ENABLED', 'false') !== 'true') {
+            throw new ConflictException('La publicación pública debe estar habilitada para verificar el cierre.');
+          }
           const blockers = await incidentClosureBlockers(tx, incident);
           if (blockers.length) throw new ConflictException({ code: 'INCIDENT_CLOSURE_BLOCKED', message: 'El incidente todavía no cumple las condiciones de cierre.', blockers });
           data.attentionState = 'CLOSED'; data.closedAt = new Date(); data.closingSummary = command.input.summary.trim();

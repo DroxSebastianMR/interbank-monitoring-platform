@@ -134,4 +134,8 @@ export class EnvironmentVariables {
   @IsIn(['true', 'false'])
   @IsOptional()
   MONITORING_DOCS_ONLY = 'false';
+
+  @IsIn(['true', 'false'])
+  @IsOptional()
+  PUBLIC_STATUS_ENABLED = 'false';
 }

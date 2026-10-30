@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PanelSkeleton } from '@/shared/components/loading/module-skeleton';
 import { useIncidentDetail } from '@/features/incidents/hooks/use-incident-detail';
+import { IncidentPublications } from '@/features/incidents/components/incident-publications';
 import { IncidentActions } from '@/features/incidents/forms/incident-actions';
 import { attentionLabels, eventLabels, severityLabels } from '@/features/incidents/constants/incident-workflow';
 
@@ -68,6 +69,7 @@ export function IncidentDetailPage() {
         {!timeline.isPending && !timeline.isError && !timeline.data?.pages[0].items.length && <p className="text-sm text-slate-600">Sin eventos registrados.</p>}
       </CardContent></Card>
       <div className="space-y-6">
+        <IncidentPublications incidentId={incident.id} />
         {!incident.closedAt && <Card><CardHeader><CardTitle>Condiciones de cierre</CardTitle></CardHeader><CardContent>{incident.closureBlockers.length ? <ul className="list-disc space-y-2 pl-4 text-sm text-slate-600">{incident.closureBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : <p className="text-sm">Las condiciones técnicas están completas. El cierre requiere resumen y confirmación del operador.</p>}</CardContent></Card>}
         {canManage && !incident.closedAt && !detail.isError && <Card><CardHeader><CardTitle>Atención</CardTitle></CardHeader><CardContent><IncidentActions key={incident.id} incident={incident} employeeId={employee!.id} onSaved={saved} /></CardContent></Card>}
         <Card><CardHeader><CardTitle>Evidencia técnica</CardTitle></CardHeader><CardContent className="space-y-3">{[['Afectación inicial', incident.evidence], ['Última observación', incident.lastEvidence], ['Recuperación', incident.recoveryEvidence]].map(([label, evidence]) => <details key={String(label)} className="rounded-lg border p-3 text-sm"><summary className="cursor-pointer">{String(label)}</summary><pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs">{evidence ? JSON.stringify(evidence, null, 2) : 'Sin evidencia registrada'}</pre></details>)}</CardContent></Card>
