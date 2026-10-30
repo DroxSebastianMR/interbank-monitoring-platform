@@ -23,7 +23,7 @@ export class MonitoredServicesController {
   @Get()
   @RequirePermissions(PermissionCode.SERVICES_READ)
   findAll() {
-    return this.service.findAll();
+    return this.service.observedAll();
   }
 
   @Post('validate-target')
@@ -43,7 +43,7 @@ export class MonitoredServicesController {
   @Get(':id')
   @RequirePermissions(PermissionCode.SERVICES_READ)
   detail(@Param('id') id: string) {
-    return this.service.require(id);
+    return this.service.observed(id);
   }
 
   @Patch(':id')
@@ -60,7 +60,7 @@ export class MonitoredServicesController {
   @Get(':id/state')
   @RequirePermissions(PermissionCode.SERVICES_READ)
   state(@Param('id') id: string) {
-    return this.service.require(id);
+    return this.service.observed(id);
   }
 
   @Get(':id/metrics')

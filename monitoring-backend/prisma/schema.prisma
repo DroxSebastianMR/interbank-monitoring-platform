@@ -156,6 +156,7 @@ model MonitoredService {
   lastMessage          String?
   anomalyScore         Float?
   riskLevel            String?              @db.VarChar(20)
+  evaluation           Json?
   consecutiveFailures  Int                  @default(0)
   consecutiveSuccesses Int                  @default(0)
   createdAt            DateTime             @default(now())
@@ -174,6 +175,7 @@ model HealthCheck {
   reachable Boolean          @default(false)
   timedOut  Boolean          @default(false)
   message   String?
+  evaluation Json?
   origin    String           @default("SCHEDULED") @db.VarChar(20)
   checkedAt DateTime         @default(now())
   service   MonitoredService @relation(fields: [serviceId], references: [id], onDelete: Cascade)

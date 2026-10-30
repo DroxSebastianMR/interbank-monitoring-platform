@@ -1,3 +1,5 @@
+import type { OperationalEvaluation } from '@/modules/monitoring/interfaces/operational-evaluation';
+
 export enum ServiceStatus {
   OPERATIONAL = 'OPERATIONAL',
   DEGRADED = 'DEGRADED',
@@ -20,4 +22,5 @@ export interface ServiceSnapshot {
   pausedReason?: string | null;
   anomalyScore?: number | null;
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | null;
+  evaluation?: OperationalEvaluation | null;
 }

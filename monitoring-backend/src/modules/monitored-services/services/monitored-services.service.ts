@@ -7,6 +7,8 @@ import {
   Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { observedService } from '@/modules/service-state/utils/observed-service';
+import { readEvaluation } from '@/modules/monitoring/utils/read-evaluation';
 
 import { MonitoredServicesRepository } from '@/modules/monitored-services/repositories/monitored-services.repository';
 import type {
@@ -76,12 +78,21 @@ export class MonitoredServicesService implements OnModuleInit {
         pausedReason: record.pausedReason,
         anomalyScore: record.anomalyScore,
         riskLevel: record.riskLevel as ServiceSnapshot['riskLevel'],
+        evaluation: readEvaluation(record.evaluation),
       });
     }
   }
 
   findAll(): ServiceSnapshot[] {
     return Array.from(this.services.values());
+  }
+
+  observedAll() {
+    return this.findAll().map((service) => this.observed(service.id));
+  }
+
+  observed(id: string) {
+    return observedService(this.require(id), this.config?.get<number>('rules.observationMaxAgeMs', 30_000));
   }
 
   find(id: string): ServiceSnapshot | undefined {
@@ -205,8 +216,9 @@ export class MonitoredServicesService implements OnModuleInit {
     reachable: boolean,
     timedOut: boolean,
     origin: 'SCHEDULED' | 'MANUAL',
+    observation?: ServiceSnapshot,
   ): Promise<void> {
-    const snapshot = this.find(id);
+    const snapshot = observation ?? this.find(id);
     if (!snapshot || !this.repository) return;
     await this.repository.recordObservation(
       id,
