@@ -371,7 +371,8 @@ model Notification {
   event       OperationalOutbox @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@unique([employeeId, eventId])
-  @@index([employeeId, createdAt])
+  @@index([employeeId, createdAt, id])
+  @@index([employeeId, readAt])
   @@map("notifications")
   @@schema("monitoring")
 }
