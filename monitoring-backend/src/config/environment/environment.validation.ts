@@ -12,5 +12,8 @@ export function validateEnvironment(config: Record<string, unknown>): Environmen
     const details = errors.flatMap((error) => Object.values(error.constraints ?? {})).join('; ');
     throw new Error(`Invalid environment: ${details}`);
   }
+  if (environment.OBSERVATION_MAX_AGE_MS <= environment.MONITOR_INTERVAL_MS + environment.MONITOR_TIMEOUT_MS) {
+    throw new Error('OBSERVATION_MAX_AGE_MS must exceed the probe interval plus timeout');
+  }
   return environment;
 }

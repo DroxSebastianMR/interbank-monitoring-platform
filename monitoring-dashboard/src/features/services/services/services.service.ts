@@ -1,12 +1,14 @@
 import { apiClient, apiGet, apiPatch, apiPost } from '@/infrastructure/api/client/axios.instance';
 import { API_ENDPOINTS } from '@/infrastructure/api/endpoints';
 import type {
-  MonitoredService, ServiceCheck, ServiceConfigChange, ServiceConfigInput,
+  MonitoredService, ServiceCheck, ServiceConfigChange, ServiceConfigInput, ServiceDiscoveryReport,
   ServiceInstances, ServiceStateChange,
 } from '@/features/services/types/service.types';
 
 export const servicesService = {
   list: (): Promise<MonitoredService[]> => apiGet(API_ENDPOINTS.SERVICES.LIST),
+  discovery: (): Promise<ServiceDiscoveryReport> => apiGet(API_ENDPOINTS.SERVICES.DISCOVERY),
+  syncDiscovery: (): Promise<ServiceDiscoveryReport> => apiPost(API_ENDPOINTS.SERVICES.DISCOVERY_SYNC),
   detail: (id: string): Promise<MonitoredService> => apiGet(API_ENDPOINTS.SERVICES.DETAIL(id)),
   checks: (id: string): Promise<ServiceCheck[]> => apiGet(API_ENDPOINTS.SERVICES.CHECKS(id)),
   stateHistory: (id: string): Promise<ServiceStateChange[]> => apiGet(API_ENDPOINTS.SERVICES.STATE_HISTORY(id)),

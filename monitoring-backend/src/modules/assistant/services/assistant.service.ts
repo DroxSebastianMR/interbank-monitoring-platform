@@ -17,6 +17,7 @@ import type {
 import { IncidentsService } from '@/modules/incidents/services/incidents.service';
 import { MonitoredServicesService } from '@/modules/monitored-services/services/monitored-services.service';
 import { PrometheusMetricsService } from '@/modules/monitoring/services/prometheus-metrics.service';
+import { observedService } from '@/modules/service-state/utils/observed-service';
 import { PermissionCode } from '@/modules/auth/enums/permission-code.enum';
 import type { EmployeePrincipal } from '@/modules/auth/types/auth.types';
 
@@ -72,19 +73,25 @@ export class AssistantService {
     const canReadServices = employee.permissions.includes(PermissionCode.SERVICES_READ);
     const canReadIncidents = employee.permissions.includes(PermissionCode.INCIDENTS_READ);
     const canReadAnalytics = employee.permissions.includes(PermissionCode.ANALYTICS_READ);
-    const services = (canReadServices ? this.services.findAll() : []).map((service) => ({
-      id: service.id,
-      name: service.name,
-      status: service.status,
-      lastCheckedAt: service.lastCheckedAt,
-      latencyMs: service.latencyMs,
-    }));
+    const services = (canReadServices ? this.services.findAll() : []).map((item) => {
+      const service = observedService(item);
+      return {
+        id: service.id,
+        name: service.name,
+        status: service.status,
+        lastCheckedAt: service.lastCheckedAt,
+        latencyMs: service.latencyMs,
+      };
+    });
     const [incidentRows, metricRows] = await Promise.all([
       canReadIncidents ? this.incidents.findAll() : Promise.resolve([]),
       Promise.all(
         (canReadAnalytics ? services : []).map(async (service) => {
           const value = await this.prometheus.read(service.id);
-          return value ? { serviceId: service.id, ...value } : null;
+          // The assistant contract accepts complete traffic observations only.
+          return value && value.errorRate !== null && value.latencyP95Ms !== null
+            ? { serviceId: service.id, requestRate: value.requestRate, errorRate: value.errorRate, latencyP95Ms: value.latencyP95Ms }
+            : null;
         }),
       ),
     ]);

@@ -3,6 +3,8 @@ export const API_ENDPOINTS = {
   DASHBOARD: { OVERVIEW: '/dashboard/overview', METRICS: '/dashboard/metrics', ACTIVITY: '/dashboard/activity', TOPOLOGY: '/dashboard/topology' },
   SERVICES: {
     LIST: '/monitored-services',
+    DISCOVERY: '/monitored-services/discovery',
+    DISCOVERY_SYNC: '/monitored-services/discovery/sync',
     DETAIL: (id: string) => `/monitored-services/${encodeURIComponent(id)}`,
     CHECKS: (id: string) => `/monitored-services/${encodeURIComponent(id)}/checks`,
     STATE_HISTORY: (id: string) => `/monitored-services/${encodeURIComponent(id)}/state-history`,

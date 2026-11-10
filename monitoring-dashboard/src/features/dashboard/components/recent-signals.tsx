@@ -5,6 +5,7 @@ import type { ActivityItem } from '@/features/dashboard/types/dashboard.types';
 import { getServiceDisplayName, translateOperationalMessage } from '@/features/dashboard/utils/operational-copy';
 import { PanelSkeleton } from '@/shared/components/loading/module-skeleton';
 import { PanelHeading } from '@/shared/components/panel-heading';
+import { Panel } from '@/shared/components/panel';
 import { EmptyState } from '@/shared/components/empty-state';
 import { formatTime } from '@/shared/utils/format';
 
@@ -23,7 +24,7 @@ const SEVERITY_LABELS: Record<string, string> = {
 export function RecentSignals({ items, isError, isLoading = false }: { items: ActivityItem[]; isError: boolean; isLoading?: boolean }) {
   if (isLoading) return <PanelSkeleton rows={4} label="Cargando señales recientes" />;
   return (
-    <section className="signals-panel" aria-labelledby="signals-title">
+    <Panel className="signals-panel" ariaLabelledBy="signals-title" variant="flat">
       <PanelHeading
         id="signals-title"
         title={<Link className="panel-title-link" to={PATHS.INCIDENTS}>Señales recientes <ArrowUpRight aria-hidden="true" /></Link>}
@@ -59,6 +60,6 @@ export function RecentSignals({ items, isError, isLoading = false }: { items: Ac
           })}
         </ol>
       ) : <EmptyState className="panel-message">Sin incidentes ni alertas recientes.</EmptyState>}
-    </section>
+    </Panel>
   );
 }

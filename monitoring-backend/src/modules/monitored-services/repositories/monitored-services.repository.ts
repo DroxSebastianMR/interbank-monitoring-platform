@@ -81,6 +81,44 @@ export class MonitoredServicesRepository {
     });
   }
 
+  async createDiscovered(
+    input: CreateMonitoredServiceDto,
+    actorId: string,
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.monitoredService.findUnique({
+        where: { code: input.code },
+        select: { id: true },
+      });
+      if (existing) return false;
+
+      await tx.monitoredService.create({
+        data: {
+          code: input.code,
+          name: input.name,
+          endpoint: input.endpoint,
+          criticality: input.criticality,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'SERVICE_DISCOVERED',
+          resource: 'monitored-service',
+          resourceId: input.code,
+          outcome: 'SUCCESS',
+          metadata: {
+            name: input.name,
+            endpoint: input.endpoint,
+            criticality: input.criticality,
+            source: 'openapi',
+          },
+        },
+      });
+      return true;
+    });
+  }
+
   async update(code: string, input: UpdateMonitoredServiceDto, actorId: string): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.monitoredService.updateMany({
@@ -125,6 +163,9 @@ export class MonitoredServicesRepository {
         data: {
           monitoringEnabled: enabled,
           pausedReason: enabled ? null : reason,
+          evaluation: Prisma.DbNull,
+          consecutiveFailures: 0,
+          consecutiveSuccesses: 0,
           version: { increment: 1 },
         },
       });
@@ -154,7 +195,7 @@ export class MonitoredServicesRepository {
       select: { id: true },
     });
     const updateService = this.prisma.monitoredService.update({
-      where: { code },
+      where: { code, version: snapshot.version ?? 1, monitoringEnabled: true },
       data: {
         status: snapshot.status,
         lastCheckedAt: snapshot.lastCheckedAt ? new Date(snapshot.lastCheckedAt) : null,
@@ -162,6 +203,7 @@ export class MonitoredServicesRepository {
         lastMessage: snapshot.message,
         anomalyScore: snapshot.anomalyScore,
         riskLevel: snapshot.riskLevel,
+        evaluation: snapshot.evaluation ?? undefined,
         consecutiveFailures: snapshot.consecutiveFailures,
         consecutiveSuccesses: snapshot.consecutiveSuccesses ?? 0,
       },
@@ -175,6 +217,7 @@ export class MonitoredServicesRepository {
         timedOut,
         message: snapshot.message,
         origin,
+        evaluation: snapshot.evaluation ?? undefined,
         checkedAt: snapshot.lastCheckedAt ? new Date(snapshot.lastCheckedAt) : new Date(),
       },
     });

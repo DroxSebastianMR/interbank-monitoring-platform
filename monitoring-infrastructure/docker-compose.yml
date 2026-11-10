@@ -101,6 +101,7 @@ services:
     restart: unless-stopped
     environment:
       MONITORING_PORT: 4000
+      PUBLIC_STATUS_ENABLED: ${PUBLIC_STATUS_ENABLED:-false}
       MONITORING_DELIVERY_ENABLED: ${MONITORING_DELIVERY_ENABLED:-false}
       NODE_ENV: development
       DATABASE_URL: ${MONITORING_DATABASE_URL}
@@ -115,6 +116,13 @@ services:
       BANK_ANALYTICS_TOKEN: ${BANK_ANALYTICS_TOKEN:-}
       MONITOR_INTERVAL_MS: ${MONITOR_INTERVAL_MS:-10000}
       MONITOR_TIMEOUT_MS: ${MONITOR_TIMEOUT_MS:-3000}
+      LATENCY_THRESHOLD_MS: ${LATENCY_THRESHOLD_MS:-1000}
+      MAX_HEALTH_FAILURES: ${MAX_HEALTH_FAILURES:-3}
+      DEGRADATION_SAMPLES: ${DEGRADATION_SAMPLES:-3}
+      DEGRADATION_DURATION_MS: ${DEGRADATION_DURATION_MS:-20000}
+      RECOVERY_SAMPLES: ${RECOVERY_SAMPLES:-3}
+      OBSERVATION_MAX_AGE_MS: ${OBSERVATION_MAX_AGE_MS:-30000}
+      HTTP_ERROR_RATE_THRESHOLD: ${HTTP_ERROR_RATE_THRESHOLD:-0.1}
       CORS_ORIGINS: ${MONITORING_CORS_ORIGINS:-http://localhost:5173}
     ports: ["4000:4000"]
     networks: [monitoring-network]
@@ -140,6 +148,23 @@ services:
       monitoring-backend: {condition: service_healthy}
     healthcheck:
       test: [CMD, wget, -qO-, http://127.0.0.1/dashboard-health]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  monitoring-status-page:
+    profiles: [public-status]
+    build:
+      context: ../monitoring-dashboard
+      target: public-status
+      args:
+        VITE_API_URL: ${PUBLIC_STATUS_API_URL:-http://localhost:4000}
+    restart: unless-stopped
+    ports: ["127.0.0.1:5174:80"]
+    networks: [monitoring-network]
+    # Static page starts independently, including when the monitored bank is down.
+    healthcheck:
+      test: [CMD, wget, -qO-, http://127.0.0.1/status-health]
       interval: 10s
       timeout: 3s
       retries: 5

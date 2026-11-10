@@ -6,17 +6,25 @@ export class DetectionService {
   constructor(private readonly config: ConfigService) {}
   analyze(m: MetricInput): DetectionResult {
     const reasons: string[] = [];
-    if (m.healthCheckFailures >= this.config.get<number>('rules.maxHealthFailures', 2))
+    if (m.healthCheckFailures >= this.config.get<number>('rules.maxHealthFailures', 3))
       reasons.push('multiple health checks failed');
     else if (m.healthCheckFailures > 0) reasons.push('health check failed');
     if (m.latency > this.config.get<number>('rules.latencyThresholdMs', 1000))
       reasons.push('latency threshold exceeded');
-    if (m.errorRate >= 0.1) reasons.push('high error rate');
-    if (m.timeoutRate >= 0.05) reasons.push('high timeout rate');
-    if (m.aiAnomalyScore >= 0.8) reasons.push('AI anomaly risk');
+    if (
+      m.http?.errorRate != null &&
+      m.http.errorRate >= this.config.get<number>('rules.httpErrorRateThreshold', 0.1)
+    )
+      reasons.push('HTTP 5xx error rate threshold exceeded');
+    if (
+      m.http?.latencyP95Ms != null &&
+      m.http.latencyP95Ms > this.config.get<number>('rules.latencyThresholdMs', 1000)
+    )
+      reasons.push('HTTP latency threshold exceeded');
+    // AI risk and historical probe failures never constitute a new technical failure.
     return {
       severity:
-        m.healthCheckFailures >= this.config.get<number>('rules.maxHealthFailures', 2)
+        m.healthCheckFailures >= this.config.get<number>('rules.maxHealthFailures', 3)
           ? 'HIGH'
           : reasons.length
             ? 'MEDIUM'

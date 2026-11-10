@@ -9,15 +9,26 @@ export class ServiceStateService {
     reachable: boolean,
     consecutiveSuccesses = 1,
     observedBefore = true,
+    degradationConfirmed = true,
+    recoverySamples = 3,
+    lastConfirmedStatus: ServiceStatus | null = current,
   ) {
     if (detection.severity === 'HIGH') return ServiceStatus.UNAVAILABLE;
-    if (!reachable || detection.severity === 'MEDIUM') return ServiceStatus.DEGRADED;
+    if (!reachable || detection.severity === 'MEDIUM') {
+      // An unavailable service stays unavailable until healthy recovery is confirmed.
+      if (current === ServiceStatus.UNAVAILABLE) return current;
+      if (current === ServiceStatus.RECOVERING &&
+        (lastConfirmedStatus === ServiceStatus.UNAVAILABLE || lastConfirmedStatus === ServiceStatus.DEGRADED)) {
+        return lastConfirmedStatus;
+      }
+      return degradationConfirmed ? ServiceStatus.DEGRADED : current;
+    }
     if (
       observedBefore &&
       (current === ServiceStatus.UNAVAILABLE ||
         current === ServiceStatus.DEGRADED ||
         current === ServiceStatus.RECOVERING) &&
-      consecutiveSuccesses < 3
+      consecutiveSuccesses < recoverySamples
     )
       return ServiceStatus.RECOVERING;
     return ServiceStatus.OPERATIONAL;

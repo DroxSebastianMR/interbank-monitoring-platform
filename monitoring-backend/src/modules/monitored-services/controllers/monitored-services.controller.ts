@@ -14,16 +14,34 @@ import {
   ValidateTargetDto,
 } from '@/modules/monitored-services/dto/service-config.dto';
 import { MonitoredServicesService } from '@/modules/monitored-services/services/monitored-services.service';
+import { ServiceDiscoveryService } from '@/modules/monitored-services/services/service-discovery.service';
 @ApiTags('monitored-services')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAccessGuard, PermissionsGuard)
 @Controller('monitored-services')
 export class MonitoredServicesController {
-  constructor(private readonly service: MonitoredServicesService) {}
+  constructor(
+    private readonly service: MonitoredServicesService,
+    private readonly discovery: ServiceDiscoveryService,
+  ) {}
   @Get()
   @RequirePermissions(PermissionCode.SERVICES_READ)
   findAll() {
-    return this.service.findAll();
+    return this.service.observedAll();
+  }
+
+  @Get('discovery')
+  @RequirePermissions(PermissionCode.SERVICES_READ)
+  @ApiOperation({ summary: 'Descubrir capacidades con health check desde el contrato OpenAPI interno' })
+  discover() {
+    return this.discovery.discover();
+  }
+
+  @Post('discovery/sync')
+  @RequirePermissions(PermissionCode.SERVICES_MANAGE)
+  @ApiOperation({ summary: 'Incorporar al catálogo los servicios detectados en el contrato OpenAPI' })
+  syncDiscovery(@CurrentEmployee() actor: EmployeePrincipal) {
+    return this.discovery.sync(actor.id);
   }
 
   @Post('validate-target')
@@ -43,7 +61,7 @@ export class MonitoredServicesController {
   @Get(':id')
   @RequirePermissions(PermissionCode.SERVICES_READ)
   detail(@Param('id') id: string) {
-    return this.service.require(id);
+    return this.service.observed(id);
   }
 
   @Patch(':id')
@@ -60,7 +78,7 @@ export class MonitoredServicesController {
   @Get(':id/state')
   @RequirePermissions(PermissionCode.SERVICES_READ)
   state(@Param('id') id: string) {
-    return this.service.require(id);
+    return this.service.observed(id);
   }
 
   @Get(':id/metrics')

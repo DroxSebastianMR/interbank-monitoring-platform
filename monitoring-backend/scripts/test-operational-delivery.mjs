@@ -21,7 +21,10 @@ try {
   const denied = await makeEmployee(`denied-${Date.now()}`, undefined);
   const repository = new IncidentsRepository(prisma, undefined, config);
   const started = performance.now();
-  await repository.open('isolated-test', 'UNAVAILABLE', 'HIGH', { reasons: ['test'], anomalyScore: .8, observedAt: new Date().toISOString() });
+  const serviceKey = `isolated-test-${Date.now()}`;
+  const observedAt = new Date();
+  await prisma.monitoredService.create({ data: { code: serviceKey, name: 'Disposable service', endpoint: '/auth/health', status: 'UNAVAILABLE', lastCheckedAt: observedAt } });
+  await repository.sync(serviceKey, 'UNAVAILABLE', { reasons: ['test'], anomalyScore: .8, observedAt: observedAt.toISOString() });
   const event = await prisma.operationalOutbox.findFirstOrThrow({ orderBy: { createdAt: 'desc' } });
   delivery.onModuleInit();
   await delivery.dispatch();

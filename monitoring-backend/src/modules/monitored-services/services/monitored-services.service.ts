@@ -7,12 +7,15 @@ import {
   Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { observedService } from '@/modules/service-state/utils/observed-service';
+import { readEvaluation } from '@/modules/monitoring/utils/read-evaluation';
 
 import { MonitoredServicesRepository } from '@/modules/monitored-services/repositories/monitored-services.repository';
 import type {
   CreateMonitoredServiceDto,
   UpdateMonitoredServiceDto,
 } from '@/modules/monitored-services/dto/service-config.dto';
+import type { DiscoveredServiceCandidate } from '@/modules/monitored-services/services/service-discovery.service';
 import {
   ServiceStatus,
   type ServiceSnapshot,
@@ -76,12 +79,21 @@ export class MonitoredServicesService implements OnModuleInit {
         pausedReason: record.pausedReason,
         anomalyScore: record.anomalyScore,
         riskLevel: record.riskLevel as ServiceSnapshot['riskLevel'],
+        evaluation: readEvaluation(record.evaluation),
       });
     }
   }
 
   findAll(): ServiceSnapshot[] {
     return Array.from(this.services.values());
+  }
+
+  observedAll() {
+    return this.findAll().map((service) => this.observed(service.id));
+  }
+
+  observed(id: string) {
+    return observedService(this.require(id), this.config?.get<number>('rules.observationMaxAgeMs', 30_000));
   }
 
   find(id: string): ServiceSnapshot | undefined {
@@ -110,6 +122,17 @@ export class MonitoredServicesService implements OnModuleInit {
     await this.repository.create(input, actorId);
     await this.refresh();
     return this.require(input.code);
+  }
+
+  async registerDiscovered(
+    candidate: DiscoveredServiceCandidate,
+    actorId: string,
+  ): Promise<boolean> {
+    if (!this.repository || this.find(candidate.code)) return false;
+    this.validateTarget(candidate.endpoint);
+    const created = await this.repository.createDiscovered(candidate, actorId);
+    if (created) await this.refresh();
+    return created;
   }
 
   async change(
@@ -205,8 +228,9 @@ export class MonitoredServicesService implements OnModuleInit {
     reachable: boolean,
     timedOut: boolean,
     origin: 'SCHEDULED' | 'MANUAL',
+    observation?: ServiceSnapshot,
   ): Promise<void> {
-    const snapshot = this.find(id);
+    const snapshot = observation ?? this.find(id);
     if (!snapshot || !this.repository) return;
     await this.repository.recordObservation(
       id,

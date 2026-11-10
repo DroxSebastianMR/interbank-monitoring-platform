@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from "react-router-dom";
-import { BrainCircuit, Gauge, RadioTower, ShieldCheck } from 'lucide-react';
+import { Link, useParams } from "react-router-dom";
+import { ArrowUpRight, BrainCircuit, Clock3, Gauge, RadioTower, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/app/providers/auth/use-auth';
+import { PATHS } from '@/app/router/constants/paths';
+import { Button } from '@/components/ui/button';
 import { servicesService } from '@/features/services/services/services.service';
+import { PublicNoticeApproval } from '@/features/services/forms/public-notice-approval';
 import { ServiceActions } from '@/features/services/forms/service-actions';
 import { ServiceStatusBadge } from '@/features/services/components/service-status-badge';
 import { ServiceKpiCard, ServiceKpiGrid } from '@/features/services/components/service-kpi-card';
@@ -11,10 +14,15 @@ import { ServiceCheckHistory } from '@/features/services/components/service-chec
 import { ServiceConfigHistory } from '@/features/services/components/service-config-history';
 import { ServiceInstanceGrid } from '@/features/services/components/service-instance-grid';
 import { ServiceStateTimeline } from '@/features/services/components/service-state-timeline';
+import { ServiceProbeTrend } from '@/features/services/components/service-probe-trend';
 import { getCriticalityLabel, getRiskLevelLabel } from '@/features/services/constants/service.constants';
+import { getServiceStatusLabel } from '@/features/services/constants/service-status';
+import { translateOperationalMessage } from '@/features/dashboard/utils/operational-copy';
 import { useModuleHeader } from '@/layouts/operations/module-header-context';
 import { DetailSkeleton, PanelSkeleton } from '@/shared/components/loading/module-skeleton';
 import { ErrorState } from '@/shared/components/error-state';
+import { Panel } from '@/shared/components/panel';
+import { formatDateTime } from '@/shared/utils/format';
 
 export function ServiceDetailPage() {
   const { id = "" } = useParams();
@@ -67,6 +75,36 @@ export function ServiceDetailPage() {
   const current = service.data;
   return (
     <section>
+      <Panel className="service-detail-context" variant="flat" ariaLabelledBy="service-detail-context-title">
+        <div className="service-detail-context-main">
+          <p className="service-catalog-context-eyebrow">Resumen operativo</p>
+          <h2 id="service-detail-context-title">{current.name}</h2>
+          <p>{translateOperationalMessage(current.message, current.id)}</p>
+          <dl>
+            <div><dt>Ruta de salud</dt><dd>{current.path ?? 'No configurada'}</dd></div>
+            <div><dt>Última comprobación</dt><dd>{current.lastCheckedAt ? formatDateTime(current.lastCheckedAt) : 'Sin observaciones'}</dd></div>
+          </dl>
+        </div>
+        <div className="service-detail-context-status">
+          <ServiceStatusBadge status={current.status} />
+          <span>{getServiceStatusLabel(current.status)}</span>
+          <Button asChild size="sm" variant="outline">
+            <Link to={PATHS.ENDPOINTS}>Ver operaciones API <ArrowUpRight aria-hidden="true" /></Link>
+          </Button>
+        </div>
+      </Panel>
+      <div className="service-detail-overview">
+        <ServiceProbeTrend checks={checks.data ?? []} isLoading={checks.isLoading} />
+        <Panel className="service-detail-guidance" variant="flat" ariaLabelledBy="service-detail-guidance-title">
+          <p className="service-catalog-context-eyebrow">Lectura recomendada</p>
+          <h2 id="service-detail-guidance-title">Qué revisar primero</h2>
+          <ol>
+            <li><Clock3 aria-hidden="true" /><span>Confirma la latencia y la tendencia de las sondas.</span></li>
+            <li><ShieldCheck aria-hidden="true" /><span>Revisa incidencias o cambios de estado recientes.</span></li>
+            <li><ArrowUpRight aria-hidden="true" /><span>Usa Operaciones API para investigar tráfico y rutas HTTP.</span></li>
+          </ol>
+        </Panel>
+      </div>
       <ServiceKpiGrid>
         <ServiceKpiCard
           label="Latencia última sonda"
@@ -103,6 +141,7 @@ export function ServiceDetailPage() {
           service={current}
         />
       )}
+      <PublicNoticeApproval key={current.id} service={current} />
       {checks.isLoading ? (
         <PanelSkeleton rows={5} label="Cargando observaciones" />
       ) : checks.isError ? (

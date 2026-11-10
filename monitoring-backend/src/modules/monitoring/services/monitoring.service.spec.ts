@@ -18,7 +18,7 @@ describe('MonitoringService', () => {
     rules: { maxHealthFailures: 3, latencyThresholdMs: 1000 },
   });
 
-  it('degrades after transient failures and confirms unavailability on the third', async () => {
+  it('does not open incidents for unconfirmed failures and confirms unavailability on the third', async () => {
     const get = jest.fn().mockReturnValue(throwError(() => new Error('timeout')));
     const incidentSync = jest.fn().mockResolvedValue(undefined);
     const monitored = new MonitoredServicesService();
@@ -34,14 +34,15 @@ describe('MonitoringService', () => {
       { sync: incidentSync } as unknown as IncidentsService,
     );
 
-    expect((await monitoring.check('login'))?.status).toBe(ServiceStatus.DEGRADED);
-    expect((await monitoring.check('login'))?.status).toBe(ServiceStatus.DEGRADED);
+    expect((await monitoring.check('login'))?.evaluation?.pendingConfirmation).toBe(true);
+    expect(monitored.observed('login').status).toBe('NO_DATA');
+    expect((await monitoring.check('login'))?.evaluation?.pendingConfirmation).toBe(true);
     expect((await monitoring.check('login'))?.status).toBe(ServiceStatus.UNAVAILABLE);
     expect(get).toHaveBeenCalledWith('http://nginx/auth/health', {
       timeout: 3000,
       maxRedirects: 0,
     });
-    expect(incidentSync).toHaveBeenCalledTimes(3);
+    expect(incidentSync).toHaveBeenCalledTimes(1);
   });
 
   it('continues with rules when the AI service fails', async () => {

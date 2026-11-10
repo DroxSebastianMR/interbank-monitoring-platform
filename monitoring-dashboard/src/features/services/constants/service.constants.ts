@@ -30,3 +30,19 @@ export const SERVICE_STATUS_FILTER_OPTIONS = [
   { value: 'UNAVAILABLE', label: 'No disponible' },
   { value: 'RECOVERING', label: 'Recuperando' },
 ] as const;
+
+export const CRITICALITY_FILTER_OPTIONS = [
+  { value: 'ALL', label: 'Todas' },
+  { value: 'CRITICAL', label: 'Crítica' },
+  { value: 'HIGH', label: 'Alta' },
+  { value: 'MEDIUM', label: 'Media' },
+  { value: 'LOW', label: 'Baja' },
+] as const;
+
+export const LATENCY_FILTER_OPTIONS = [
+  { value: 'ALL', label: 'Todas' },
+  { value: 'FAST', label: 'Menos de 500 ms' },
+  { value: 'ELEVATED', label: '500 a 999 ms' },
+  { value: 'SLOW', label: '1 s o más' },
+  { value: 'NO_DATA', label: 'Sin datos' },
+] as const;

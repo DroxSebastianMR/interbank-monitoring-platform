@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, IsUrl, Min, MinLength } from 'class-validator';
+import { IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, Max, Min, MinLength } from 'class-validator';
 
 import { APPLICATION_DEFAULTS } from '@/config/application/application.constants';
 import {
@@ -96,6 +96,37 @@ export class EnvironmentVariables {
   @IsOptional()
   MAX_HEALTH_FAILURES = 3;
 
+  @Type(() => Number)
+  @IsInt()
+  @Min(2)
+  @IsOptional()
+  DEGRADATION_SAMPLES = 3;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1_000)
+  @IsOptional()
+  DEGRADATION_DURATION_MS = 20_000;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(3)
+  @IsOptional()
+  RECOVERY_SAMPLES = 3;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1_000)
+  @IsOptional()
+  OBSERVATION_MAX_AGE_MS = 30_000;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.001)
+  @Max(1)
+  @IsOptional()
+  HTTP_ERROR_RATE_THRESHOLD = 0.1;
+
   @IsString()
   @IsOptional()
   CORS_ORIGINS?: string;
@@ -103,4 +134,8 @@ export class EnvironmentVariables {
   @IsIn(['true', 'false'])
   @IsOptional()
   MONITORING_DOCS_ONLY = 'false';
+
+  @IsIn(['true', 'false'])
+  @IsOptional()
+  PUBLIC_STATUS_ENABLED = 'false';
 }
