@@ -81,6 +81,44 @@ export class MonitoredServicesRepository {
     });
   }
 
+  async createDiscovered(
+    input: CreateMonitoredServiceDto,
+    actorId: string,
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.monitoredService.findUnique({
+        where: { code: input.code },
+        select: { id: true },
+      });
+      if (existing) return false;
+
+      await tx.monitoredService.create({
+        data: {
+          code: input.code,
+          name: input.name,
+          endpoint: input.endpoint,
+          criticality: input.criticality,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'SERVICE_DISCOVERED',
+          resource: 'monitored-service',
+          resourceId: input.code,
+          outcome: 'SUCCESS',
+          metadata: {
+            name: input.name,
+            endpoint: input.endpoint,
+            criticality: input.criticality,
+            source: 'openapi',
+          },
+        },
+      });
+      return true;
+    });
+  }
+
   async update(code: string, input: UpdateMonitoredServiceDto, actorId: string): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.monitoredService.updateMany({

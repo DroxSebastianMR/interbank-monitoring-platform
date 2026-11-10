@@ -15,6 +15,7 @@ import type {
   CreateMonitoredServiceDto,
   UpdateMonitoredServiceDto,
 } from '@/modules/monitored-services/dto/service-config.dto';
+import type { DiscoveredServiceCandidate } from '@/modules/monitored-services/services/service-discovery.service';
 import {
   ServiceStatus,
   type ServiceSnapshot,
@@ -121,6 +122,17 @@ export class MonitoredServicesService implements OnModuleInit {
     await this.repository.create(input, actorId);
     await this.refresh();
     return this.require(input.code);
+  }
+
+  async registerDiscovered(
+    candidate: DiscoveredServiceCandidate,
+    actorId: string,
+  ): Promise<boolean> {
+    if (!this.repository || this.find(candidate.code)) return false;
+    this.validateTarget(candidate.endpoint);
+    const created = await this.repository.createDiscovered(candidate, actorId);
+    if (created) await this.refresh();
+    return created;
   }
 
   async change(

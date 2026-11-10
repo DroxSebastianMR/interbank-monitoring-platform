@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'motion/react';
 import { Navigate } from 'react-router-dom';
 
 import { useAuth } from '@/app/providers/auth/use-auth';
@@ -9,19 +10,22 @@ import { FullPageLoader } from '@/shared/components/loading/full-page-loader';
 
 export function LoginPage() {
   const { employee, isLoading } = useAuth();
+  const reduceMotion = useReducedMotion();
+
   if (isLoading) return <FullPageLoader />;
   if (employee) return <Navigate to={PATHS.DASHBOARD} replace />;
 
   return (
-    <div className="grid min-h-svh bg-[#fbfdfb] text-[#102c1e] md:grid-cols-[minmax(0,44%)_minmax(0,56%)] lg:grid-cols-[minmax(0,51%)_minmax(0,49%)]">
+    <main className="grid min-h-[100dvh] overflow-hidden bg-[#f8fbf8] text-[#102c1e] lg:grid-cols-[minmax(0,53%)_minmax(0,47%)]">
       <LoginBrandPanel />
-      <section className="flex min-h-svh flex-col items-center justify-center bg-[#fbfdfb] px-6 py-8 md:px-8 md:py-10" aria-label="Acceso al monitor">
-        <div className="mb-16 w-full max-w-[414px] md:hidden">
-          <InterbankMonitorLogo variant="dark" />
-        </div>
-        <LoginForm />
-        <p className="mt-16 text-center text-[11px] text-[#91a197] md:mt-0">Acceso exclusivo para personal autorizado. Tu sesión está protegida.</p>
+      <section className="relative flex min-h-[100dvh] flex-col overflow-hidden px-6 py-7 sm:px-10 lg:px-[clamp(3rem,7vw,8.5rem)]" aria-label="Acceso al monitor">
+        <div className="pointer-events-none absolute -top-28 -right-24 size-80 rounded-full bg-[#b3f3cf]/35 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-48 bg-[linear-gradient(180deg,transparent,#e8f8ed80)]" />
+        <motion.header className="relative z-10 lg:hidden" initial={reduceMotion ? false : { opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
+          <InterbankMonitorLogo variant="dark" compact />
+        </motion.header>
+        <div className="relative z-10 flex flex-1 items-center justify-center py-10 lg:py-14"><div className="w-full lg:scale-90 lg:transform-gpu"><LoginForm /></div></div>
       </section>
-    </div>
+    </main>
   );
 }

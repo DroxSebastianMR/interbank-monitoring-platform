@@ -26,7 +26,7 @@ export function EndpointFilters({
 }: Props) {
   const fields = [
     { key: "instance", label: "Instancia", options: instances },
-    { key: "module", label: "Módulo", options: modules },
+    { key: "module", label: "Componente", options: modules },
     { key: "method", label: "Método", options: methods },
   ] as const;
   return (
@@ -63,7 +63,7 @@ export function EndpointFilters({
         </div>
       ))}
       <label className="space-y-1.5 text-xs font-semibold text-slate-600">
-        Buscar ruta o módulo
+        Buscar operación o componente
         <Input
           className="mt-1.5"
           value={value.search}
