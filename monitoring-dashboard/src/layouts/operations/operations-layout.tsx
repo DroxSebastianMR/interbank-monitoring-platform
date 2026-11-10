@@ -26,7 +26,6 @@ import { formatShortDate, formatTime } from '@/shared/utils/format';
 import { useOperationalRealtime } from '@/features/realtime/hooks/use-operational-realtime';
 
 const monitoringLinks = [
-  { to: PATHS.SERVICES, label: 'Servicios', icon: Server, count: 3, tone: 'info' },
   { to: PATHS.INCIDENTS, label: 'Incidentes', icon: Siren, count: 3, tone: 'critical' },
   { to: PATHS.ALERTS, label: 'Alertas', icon: BellRing, count: 2, tone: 'warning' },
 ];
@@ -38,7 +37,7 @@ const intelligenceLinks = [
 ];
 
 const pageTitles: Array<[string, string]> = [
-  [PATHS.ENDPOINTS, 'Endpoints por instancia'],
+  [PATHS.ENDPOINTS, 'Operaciones API'],
   [PATHS.SERVICES, 'Servicios digitales'],
   [PATHS.INCIDENTS, 'Incidentes'],
   [PATHS.ALERTS, 'Alertas'],
@@ -82,7 +81,8 @@ export function OperationsLayout() {
               <MonitorCog aria-hidden="true" /><span>Monitoreo</span><ChevronDown className="nav-chevron" aria-hidden="true" />
             </button>
             <div className="nav-group-list" id="monitoring-links">
-              {employee?.permissions.includes(PermissionCode.ANALYTICS_READ) && <NavLink to={PATHS.ENDPOINTS}><Route aria-hidden="true" /><span>Endpoints</span></NavLink>}
+              <NavLink to={PATHS.SERVICES}><Server aria-hidden="true" /><span>Servicios digitales</span></NavLink>
+              {employee?.permissions.includes(PermissionCode.ANALYTICS_READ) && <NavLink to={PATHS.ENDPOINTS}><Route aria-hidden="true" /><span>Operaciones API</span></NavLink>}
               {monitoringLinks.map(({ to, label, icon: Icon, count, tone }) => (
                 <NavLink key={to} to={to}><Icon aria-hidden="true" /><span>{label}</span>{count > 0 && <span className={`nav-count tone-${tone}`} aria-label={`${count} notificaciones`}>{count}</span>}</NavLink>
               ))}

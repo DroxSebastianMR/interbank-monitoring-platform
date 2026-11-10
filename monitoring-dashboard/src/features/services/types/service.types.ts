@@ -21,6 +21,21 @@ export interface ServiceConfigInput {
   criticality: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 }
 
+export interface DiscoveredServiceCandidate {
+  code: string;
+  name: string;
+  endpoint: string;
+  criticality: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  registered: boolean;
+}
+
+export interface ServiceDiscoveryReport {
+  source: 'openapi';
+  generatedAt: string;
+  services: DiscoveredServiceCandidate[];
+  added?: number;
+}
+
 export interface ServiceCheck {
   id: string;
   status: string;

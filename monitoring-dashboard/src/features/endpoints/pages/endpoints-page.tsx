@@ -69,11 +69,12 @@ export function EndpointsPage() {
             OBSERVABILIDAD DE LA API
           </p>
           <h2 className="mt-1 text-2xl font-semibold">
-            Endpoints por instancia
+            Operaciones API
           </h2>
           <p className="mt-2 max-w-3xl text-sm text-slate-500">
-            Inventario automático por módulo y método. Compara las réplicas sin
-            ejecutar operaciones ni registrar rutas manualmente.
+            Inventario transversal de operaciones HTTP detectadas. Cada operación
+            pertenece a un servicio y se desglosa por réplica para investigar
+            diferencias de tráfico, errores y latencia.
           </p>
         </div>
         <Button
@@ -101,7 +102,7 @@ export function EndpointsPage() {
             }
           </p>
           <p className="text-sm text-slate-600">
-            Operaciones únicas · {modules.length} módulos
+            Operaciones HTTP únicas · {modules.length} componentes
           </p>
         </div>
         {snapshot.instances.map((instance) => (
@@ -117,7 +118,7 @@ export function EndpointsPage() {
             </div>
             <p className="font-semibold">{instance.id}</p>
             <p className="mt-1 text-sm text-slate-500">
-              {instance.endpointCount} operaciones declaradas
+              {instance.endpointCount} operaciones detectadas
             </p>
             {instance.endpointCount === 0 && (
               <p className="mt-2 text-xs text-amber-800">

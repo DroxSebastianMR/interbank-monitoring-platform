@@ -22,13 +22,13 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointMetric[] }) {
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
       <table className="w-full text-left text-sm">
         <caption className="sr-only">
-          Operaciones declaradas y métricas por instancia. La disponibilidad del
+          Operaciones HTTP detectadas y métricas por instancia. La disponibilidad del
           scrape no garantiza el éxito de cada operación.
         </caption>
         <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-600">
           <tr>
             {[
-              "Módulo / operación",
+              "Componente / operación",
               "Instancia",
               "Telemetría / tráfico",
               "Solicitudes/s",
