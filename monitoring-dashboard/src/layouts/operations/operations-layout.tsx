@@ -24,16 +24,17 @@ import { ModuleBackButton } from '@/shared/components/module-back-button';
 import { ModuleHeaderContext } from '@/layouts/operations/module-header-context';
 import { formatShortDate, formatTime } from '@/shared/utils/format';
 import { useOperationalRealtime } from '@/features/realtime/hooks/use-operational-realtime';
+import { NotificationBell } from '@/features/notifications/components/notification-bell';
 
 const monitoringLinks = [
-  { to: PATHS.INCIDENTS, label: 'Incidentes', icon: Siren, count: 3, tone: 'critical' },
-  { to: PATHS.ALERTS, label: 'Alertas', icon: BellRing, count: 2, tone: 'warning' },
+  { to: PATHS.INCIDENTS, label: 'Incidentes', icon: Siren },
+  { to: PATHS.ALERTS, label: 'Alertas', icon: BellRing },
 ];
 
 const intelligenceLinks = [
-  { to: PATHS.ANALYTICS, label: 'Analítica', icon: ChartNoAxesCombined, count: 0, tone: 'info' },
-  { to: PATHS.HEALTH, label: 'Health', icon: Activity, count: 0, tone: 'info' },
-  { to: PATHS.ASSISTANT, label: 'Asistente IA', icon: Bot, count: 1, tone: 'success' },
+  { to: PATHS.ANALYTICS, label: 'Analítica', icon: ChartNoAxesCombined },
+  { to: PATHS.HEALTH, label: 'Health', icon: Activity },
+  { to: PATHS.ASSISTANT, label: 'Asistente IA', icon: Bot },
 ];
 
 const pageTitles: Array<[string, string]> = [
@@ -83,8 +84,8 @@ export function OperationsLayout() {
             <div className="nav-group-list" id="monitoring-links">
               <NavLink to={PATHS.SERVICES}><Server aria-hidden="true" /><span>Servicios digitales</span></NavLink>
               {employee?.permissions.includes(PermissionCode.ANALYTICS_READ) && <NavLink to={PATHS.ENDPOINTS}><Route aria-hidden="true" /><span>Operaciones API</span></NavLink>}
-              {monitoringLinks.map(({ to, label, icon: Icon, count, tone }) => (
-                <NavLink key={to} to={to}><Icon aria-hidden="true" /><span>{label}</span>{count > 0 && <span className={`nav-count tone-${tone}`} aria-label={`${count} notificaciones`}>{count}</span>}</NavLink>
+              {monitoringLinks.map(({ to, label, icon: Icon }) => (
+                <NavLink key={to} to={to}><Icon aria-hidden="true" /><span>{label}</span></NavLink>
               ))}
             </div>
           </section>
@@ -93,8 +94,8 @@ export function OperationsLayout() {
               <ChartNoAxesCombined aria-hidden="true" /><span>Inteligencia</span><ChevronDown className="nav-chevron" aria-hidden="true" />
             </button>
             <div className="nav-group-list" id="intelligence-links">
-              {intelligenceLinks.map(({ to, label, icon: Icon, count, tone }) => (
-                <NavLink key={to} to={to}><Icon aria-hidden="true" /><span>{label}</span>{count > 0 && <span className={`nav-count tone-${tone}`} aria-label={`${count} notificaciones`}>{count}</span>}</NavLink>
+              {intelligenceLinks.map(({ to, label, icon: Icon }) => (
+                <NavLink key={to} to={to}><Icon aria-hidden="true" /><span>{label}</span></NavLink>
               ))}
             </div>
           </section>
@@ -122,6 +123,7 @@ export function OperationsLayout() {
             <span className="realtime-state" role="status">{realtimeStatus}<span className="realtime-environment"> · Monitor</span></span>
             <time>{formatTime(now)} PET</time>
             <span className="operations-date">{formatShortDate(now)}</span>
+            <NotificationBell />
             <Button variant="ghost" size="icon" aria-label="Cerrar sesión"
               onClick={() =>
                 void signOut().finally(() =>
